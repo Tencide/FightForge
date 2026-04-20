@@ -1,12 +1,13 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import Login from './pages/Login';
 import PartnerPlaceholder from './pages/PartnerPlaceholder';
 import NotFound from './pages/NotFound';
 
 function Landing() {
   return (
     <PartnerPlaceholder title="FightForge">
-      Feature pages (home, login, dashboard, workouts, progress) mount here as their branches are merged.
+      Home page lives on feat/frontend-home — once merged this becomes the real landing view.
     </PartnerPlaceholder>
   );
 }
@@ -17,13 +18,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
-          {/* Feature routes are registered on their respective branches:
-              /            -> feat/frontend-home
-              /login       -> feat/frontend-login
-              /dashboard   -> feat/frontend-athlete-dashboard
-              /workouts    -> feat/frontend-workouts-ui
-              /progress    -> feat/frontend-progress-ui
-          */}
+          <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
