@@ -5,6 +5,25 @@ const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 
 /**
+ * Snapchat-style ephemeral retention. Once a recipient sees a message we
+ * give them this many seconds before it auto-deletes (unless either party
+ * has flagged it as `saved`). Cleanup runs lazily on every messages GET so
+ * we don't need a cron job.
+ */
+const EPHEMERAL_TTL_SECONDS = 60;
+
+async function sweepExpiredFor(userId) {
+  await pool.query(
+    `DELETE FROM messages
+     WHERE saved = 0
+       AND seen_at IS NOT NULL
+       AND seen_at < (NOW() - INTERVAL ? SECOND)
+       AND (sender_id = ? OR recipient_id = ?)`,
+    [EPHEMERAL_TTL_SECONDS, userId, userId]
+  );
+}
+
+/**
  * GET /api/messages — list "conversation partners" for the current user.
  *  - athletes: their assigned coach (if any) + admins they've messaged with
  *  - coaches: athletes assigned to them + admins
@@ -14,6 +33,7 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const me = req.user;
+    await sweepExpiredFor(me.id);
     const partnerSet = new Map();
 
     if (me.role === 'athlete') {
@@ -91,6 +111,7 @@ router.get('/:partnerId', authenticate, async (req, res) => {
   try {
     const partnerId = Number(req.params.partnerId);
     if (!partnerId) return res.status(400).json({ error: 'Invalid partner id' });
+    await sweepExpiredFor(req.user.id);
     const [partner] = await pool.query(
       `SELECT id, full_name, role FROM users WHERE id = ?`,
       [partnerId]
@@ -103,7 +124,80 @@ router.get('/:partnerId', authenticate, async (req, res) => {
        ORDER BY created_at ASC, id ASC`,
       [req.user.id, partnerId, partnerId, req.user.id]
     );
-    return res.json({ partner: partner[0], messages: rows });
+    return res.json({
+      partner: partner[0],
+      messages: rows,
+      ephemeralTtlSeconds: EPHEMERAL_TTL_SECONDS,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * POST /api/messages/:id/seen
+ * Mark a message as seen — only the recipient can do this. Idempotent: a
+ * second call after the first leaves the original seen_at intact (so the TTL
+ * clock doesn't reset on every render).
+ */
+router.post('/:id/seen', authenticate, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+    const [rows] = await pool.query('SELECT * FROM messages WHERE id = ?', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Message not found' });
+    const m = rows[0];
+    if (m.recipient_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the recipient can mark a message seen' });
+    }
+    if (!m.seen_at) {
+      await pool.query(
+        'UPDATE messages SET seen_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [id]
+      );
+    }
+    const [out] = await pool.query('SELECT * FROM messages WHERE id = ?', [id]);
+    return res.json(out[0]);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * POST /api/messages/:id/save
+ * Toggle save. Body: { saved: boolean }. Either the sender or the recipient
+ * can save (or unsave). Saving locks the message in permanently and the
+ * sweeper will skip it.
+ */
+router.post('/:id/save', authenticate, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+    const [rows] = await pool.query('SELECT * FROM messages WHERE id = ?', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Message not found' });
+    const m = rows[0];
+    if (m.sender_id !== req.user.id && m.recipient_id !== req.user.id) {
+      return res
+        .status(403)
+        .json({ error: 'Only the sender or the recipient can save a message' });
+    }
+    const wantSaved =
+      req.body && req.body.saved !== undefined ? Boolean(req.body.saved) : true;
+    if (wantSaved) {
+      await pool.query(
+        'UPDATE messages SET saved = 1, saved_by = ? WHERE id = ?',
+        [req.user.id, id]
+      );
+    } else {
+      await pool.query(
+        'UPDATE messages SET saved = 0, saved_by = NULL WHERE id = ?',
+        [id]
+      );
+    }
+    const [out] = await pool.query('SELECT * FROM messages WHERE id = ?', [id]);
+    return res.json(out[0]);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });

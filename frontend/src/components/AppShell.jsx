@@ -8,6 +8,7 @@ const ATHLETE_NAV = [
   { to: '/workouts', label: 'Workouts' },
   { to: '/progress', label: 'Progress' },
   { to: '/meals', label: 'Meals' },
+  { to: '/friends', label: 'Friends' },
   { to: '/chat', label: 'Chat' },
 ];
 
@@ -16,6 +17,7 @@ const COACH_NAV = [
   { to: '/workouts', label: 'Workouts' },
   { to: '/meals', label: 'Meals' },
   { to: '/progress', label: 'Progress' },
+  { to: '/friends', label: 'Friends' },
   { to: '/chat', label: 'Chat' },
 ];
 
@@ -24,6 +26,7 @@ const ADMIN_NAV = [
   { to: '/workouts', label: 'Workouts' },
   { to: '/meals', label: 'Meals' },
   { to: '/progress', label: 'Progress' },
+  { to: '/friends', label: 'Friends' },
 ];
 
 function navForRole(role) {
@@ -131,7 +134,23 @@ export function AppShell() {
                 <span className={styles.userName} title={user?.full_name}>
                   {user?.full_name}
                 </span>
-                <span className={`badge ${roleBadgeClass}`}>{user?.role}</span>
+                <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                  <span className={`badge ${roleBadgeClass}`}>{user?.role}</span>
+                  {user?.overall != null && (
+                    <span
+                      className="badge"
+                      title={`Overall ${user.overall} \u2014 ${Number(user.xp || 0).toLocaleString()} XP`}
+                      style={{
+                        background: 'linear-gradient(135deg, #2a1f0d, #15110a)',
+                        borderColor: 'rgba(244, 185, 66, 0.4)',
+                        color: '#fde68a',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      OVR {user.overall}
+                    </span>
+                  )}
+                </span>
               </div>
               <Initials name={user?.full_name} />
             </Link>

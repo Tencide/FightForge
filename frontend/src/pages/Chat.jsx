@@ -41,16 +41,20 @@ function Initials({ name }) {
   return <span className="chat-avatar">{text}</span>;
 }
 
+const EPHEMERAL_TTL_FALLBACK = 60;
+
 export default function Chat() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [active, setActive] = useState(null);
-  const [thread, setThread] = useState({ partner: null, messages: [] });
+  const [thread, setThread] = useState({ partner: null, messages: [], ephemeralTtlSeconds: EPHEMERAL_TTL_FALLBACK });
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [loadingThread, setLoadingThread] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const scrollRef = useRef(null);
+  const seenSentRef = useRef(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -71,30 +75,73 @@ export default function Chat() {
     };
   }, [active]);
 
+  // Loading a thread + polling so messages disappear naturally as their TTL
+  // expires server-side (we re-fetch every ~5 seconds while the thread is open).
   useEffect(() => {
-    if (!active) return;
+    if (!active) return undefined;
     let cancelled = false;
     setLoadingThread(true);
-    (async () => {
+    seenSentRef.current = new Set();
+    const fetchThread = async () => {
       try {
         const data = await apiFetch(`/api/messages/${active}`);
-        if (!cancelled) setThread(data);
+        if (!cancelled) {
+          setThread(data);
+          setLoadingThread(false);
+        }
       } catch (e) {
-        if (!cancelled) setError(e.message || 'Failed to load thread');
-      } finally {
-        if (!cancelled) setLoadingThread(false);
+        if (!cancelled) {
+          setError(e.message || 'Failed to load thread');
+          setLoadingThread(false);
+        }
       }
-    })();
+    };
+    fetchThread();
+    const id = window.setInterval(fetchThread, 5000);
     return () => {
       cancelled = true;
+      window.clearInterval(id);
     };
   }, [active]);
+
+  // Tick-tock for the ephemeral countdown badges.
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [thread.messages.length]);
+
+  // Auto-mark incoming messages as seen the first time we render them.
+  useEffect(() => {
+    if (!thread.messages || thread.messages.length === 0) return;
+    const toMark = thread.messages.filter(
+      (m) =>
+        m.recipient_id === user.id &&
+        !m.seen_at &&
+        !seenSentRef.current.has(m.id)
+    );
+    if (toMark.length === 0) return;
+    toMark.forEach((m) => seenSentRef.current.add(m.id));
+    (async () => {
+      const updates = await Promise.all(
+        toMark.map((m) =>
+          apiFetch(`/api/messages/${m.id}/seen`, { method: 'POST' }).catch(() => null)
+        )
+      );
+      const updatedMap = new Map();
+      updates.forEach((u) => u && updatedMap.set(u.id, u));
+      if (updatedMap.size === 0) return;
+      setThread((t) => ({
+        ...t,
+        messages: t.messages.map((m) => updatedMap.get(m.id) || m),
+      }));
+    })();
+  }, [thread.messages, user.id]);
 
   async function send(e) {
     e.preventDefault();
@@ -115,6 +162,22 @@ export default function Chat() {
       setError(err.message || 'Could not send message');
     } finally {
       setSending(false);
+    }
+  }
+
+  async function toggleSave(m) {
+    const next = !m.saved;
+    try {
+      const updated = await apiFetch(`/api/messages/${m.id}/save`, {
+        method: 'POST',
+        body: { saved: next },
+      });
+      setThread((t) => ({
+        ...t,
+        messages: t.messages.map((x) => (x.id === m.id ? { ...x, ...updated } : x)),
+      }));
+    } catch (err) {
+      setError(err.message || 'Could not save message');
     }
   }
 
@@ -207,6 +270,15 @@ export default function Chat() {
                 </div>
               </header>
 
+              <div className="chat-ephemeral-banner muted">
+                <Icon name="clock" size={14} />
+                <span>
+                  Snap-style chat — once seen, messages auto-delete after{' '}
+                  {thread.ephemeralTtlSeconds || EPHEMERAL_TTL_FALLBACK}s. Tap the star to save one before it
+                  disappears.
+                </span>
+              </div>
+
               <div className="chat-messages" ref={scrollRef}>
                 {loadingThread ? (
                   <div className="skeleton" style={{ height: 60, margin: 'var(--s-3) 0' }} />
@@ -217,13 +289,56 @@ export default function Chat() {
                 ) : (
                   thread.messages.map((m) => {
                     const mine = m.sender_id === user.id;
+                    const ttl = thread.ephemeralTtlSeconds || EPHEMERAL_TTL_FALLBACK;
+                    let countdown = null;
+                    let isExpiring = false;
+                    if (m.seen_at && !m.saved) {
+                      const seenAtMs = new Date(m.seen_at).getTime();
+                      const remainingMs = seenAtMs + ttl * 1000 - now;
+                      const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+                      countdown = remaining;
+                      isExpiring = true;
+                    }
                     return (
                       <div
                         key={m.id}
-                        className={`chat-bubble ${mine ? 'mine' : 'theirs'}`}
+                        className={`chat-bubble ${mine ? 'mine' : 'theirs'}${
+                          m.saved ? ' is-saved' : ''
+                        }${isExpiring ? ' is-expiring' : ''}`}
+                        style={
+                          isExpiring && countdown != null
+                            ? { opacity: Math.max(0.45, countdown / ttl) }
+                            : undefined
+                        }
                       >
                         <div className="chat-bubble-body">{m.body}</div>
-                        <div className="chat-bubble-time">{fmtTime(m.created_at)}</div>
+                        <div className="chat-bubble-meta">
+                          <span className="chat-bubble-time">{fmtTime(m.created_at)}</span>
+                          {m.saved ? (
+                            <span className="chat-tag chat-tag-saved" title="Saved permanently">
+                              ★ Saved
+                            </span>
+                          ) : isExpiring ? (
+                            <span
+                              className="chat-tag chat-tag-expiring"
+                              title="Message will self-destruct"
+                            >
+                              ⏳ {countdown}s
+                            </span>
+                          ) : mine ? null : (
+                            <span className="chat-tag chat-tag-new" title="Not yet seen">
+                              new
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="chat-bubble-action"
+                            onClick={() => toggleSave(m)}
+                            title={m.saved ? 'Unsave message' : 'Save before it disappears'}
+                          >
+                            {m.saved ? '★' : '☆'}
+                          </button>
+                        </div>
                       </div>
                     );
                   })

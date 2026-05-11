@@ -7,12 +7,14 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Workouts from './pages/Workouts';
+import WorkoutLibrary from './pages/WorkoutLibrary';
 import Progress from './pages/Progress';
 import Meals from './pages/Meals';
 import Chat from './pages/Chat';
 import CoachHome from './pages/CoachHome';
 import AdminHome from './pages/AdminHome';
 import Profile from './pages/Profile';
+import Friends from './pages/Friends';
 import NotFound from './pages/NotFound';
 
 function AthleteDashboardGate() {
@@ -52,10 +54,12 @@ export default function App() {
           >
             <Route path="/dashboard" element={<AthleteDashboardGate />} />
             <Route path="/workouts" element={<Workouts />} />
+            <Route path="/workouts/library" element={<WorkoutLibrary />} />
             <Route path="/progress" element={<Progress />} />
             <Route path="/meals" element={<Meals />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/friends" element={<Friends />} />
             <Route
               path="/coach"
               element={

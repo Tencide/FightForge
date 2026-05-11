@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
@@ -16,7 +17,7 @@ const EMPTY_FORM = {
 };
 
 export default function Workouts() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [items, setItems] = useState([]);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState('');
@@ -29,6 +30,10 @@ export default function Workouts() {
 
   const canManage = user.role === 'coach' || user.role === 'admin';
   const isEditing = editingId != null;
+  const isAthlete = user.role === 'athlete';
+  const [generating, setGenerating] = useState(false);
+  const [completingId, setCompletingId] = useState(null);
+  const [xpToast, setXpToast] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,8 +125,72 @@ export default function Workouts() {
     }
   }
 
+  async function generateToday() {
+    setError('');
+    setGenerating(true);
+    try {
+      const created = await apiFetch('/api/workouts/generate-today', { method: 'POST' });
+      setItems((prev) => [created, ...prev]);
+      setOpenId(created.id);
+    } catch (err) {
+      setError(err.message || 'Could not generate today\u2019s workout');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function toggleComplete(w) {
+    const completed = !w.completed_at;
+    setCompletingId(w.id);
+    setError('');
+    try {
+      const updated = await apiFetch(`/api/workouts/${w.id}/complete`, {
+        method: 'POST',
+        body: { completed },
+      });
+      setItems((prev) => prev.map((x) => (x.id === w.id ? { ...x, ...updated } : x)));
+      if (updated.xp && updated.xp.delta && isAthlete) {
+        setXpToast({
+          delta: updated.xp.delta,
+          overall: updated.xp.overall,
+          leveledUp: updated.xp.leveledUp,
+        });
+        refreshProfile().catch(() => {});
+        setTimeout(() => setXpToast(null), 4500);
+      }
+    } catch (err) {
+      setError(err.message || 'Could not update completion');
+    } finally {
+      setCompletingId(null);
+    }
+  }
+
+  function formatCompletedDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
   return (
     <div className="stack fade-up">
+      {xpToast && (
+        <div
+          className="success"
+          role="status"
+          aria-live="polite"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}
+        >
+          <span>
+            {xpToast.delta > 0 ? '+' : ''}
+            {xpToast.delta} XP
+            {xpToast.leveledUp ? ` \u2014 Overall up to ${xpToast.overall}!` : ` \u2014 Overall ${xpToast.overall}`}
+          </span>
+          <button type="button" className="btn-link" onClick={() => setXpToast(null)}>
+            dismiss
+          </button>
+        </div>
+      )}
       <header className="page-header with-actions">
         <div>
           <p className="eyebrow">Workouts</p>
@@ -132,24 +201,44 @@ export default function Workouts() {
               : 'Plans assigned to you by your coach. Click a plan to see details and watch the tutorial.'}
           </p>
         </div>
-        {canManage ? (
+        <div className="cluster">
+          <Link to="/workouts/library" className="btn btn-subtle">
+            <Icon name="notebook" size={16} />
+            Browse library
+          </Link>
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              if (showForm) {
-                resetForm();
-              } else {
-                setForm(EMPTY_FORM);
-                setEditingId(null);
-                setShowForm(true);
-              }
-            }}
+            className="btn btn-secondary"
+            onClick={generateToday}
+            disabled={generating}
+            title={
+              isAthlete
+                ? 'Auto-create today\u2019s session from your profile'
+                : 'Auto-create today\u2019s session for yourself'
+            }
           >
-            <Icon name={showForm ? 'x' : 'plus'} size={16} />
-            {showForm ? 'Cancel' : 'New workout'}
+            <Icon name="flame" size={16} />
+            {generating ? 'Generating\u2026' : 'Generate today\u2019s workout'}
           </button>
-        ) : null}
+          {canManage ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                if (showForm) {
+                  resetForm();
+                } else {
+                  setForm(EMPTY_FORM);
+                  setEditingId(null);
+                  setShowForm(true);
+                }
+              }}
+            >
+              <Icon name={showForm ? 'x' : 'plus'} size={16} />
+              {showForm ? 'Cancel' : 'New workout'}
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {error ? <p className="error" role="alert">{error}</p> : null}
@@ -277,23 +366,55 @@ export default function Workouts() {
         <ul className="list">
           {filtered.map((w) => {
             const isRowEditing = editingId === w.id;
+            const done = !!w.completed_at;
+            const canCompleteRow =
+              canManage || (isAthlete && w.athlete_id === user.id);
             return (
               <li
                 key={w.id}
                 className="list-item"
-                style={
-                  isRowEditing
+                style={{
+                  ...(isRowEditing
                     ? {
                         borderColor: 'var(--accent)',
                         boxShadow: '0 0 0 1px var(--accent)',
                       }
-                    : undefined
-                }
+                    : null),
+                  ...(done && !isRowEditing
+                    ? {
+                        borderColor: 'rgba(34,197,94,0.4)',
+                        background:
+                          'linear-gradient(180deg, rgba(34,197,94,0.05) 0%, transparent 100%)',
+                      }
+                    : null),
+                }}
               >
                 <div className="spread">
                   <div style={{ minWidth: 0 }}>
                     <div className="cluster" style={{ marginBottom: 4 }}>
-                      <strong style={{ fontSize: '1rem' }}>{w.title}</strong>
+                      <strong
+                        style={{
+                          fontSize: '1rem',
+                          opacity: done ? 0.85 : 1,
+                          textDecoration: done ? 'line-through' : 'none',
+                          textDecorationColor: 'rgba(34,197,94,0.6)',
+                          textDecorationThickness: '2px',
+                        }}
+                      >
+                        {w.title}
+                      </strong>
+                      {done ? (
+                        <span
+                          className="badge"
+                          style={{
+                            color: 'var(--success, #22c55e)',
+                            borderColor: 'rgba(34,197,94,0.4)',
+                          }}
+                          title={`Completed ${new Date(w.completed_at).toLocaleString()}`}
+                        >
+                          ✓ Done {formatCompletedDate(w.completed_at)}
+                        </span>
+                      ) : null}
                       {w.video_url ? (
                         <span
                           className="badge"
@@ -333,6 +454,22 @@ export default function Workouts() {
                     >
                       Show details
                     </button>
+                    {canCompleteRow ? (
+                      <button
+                        type="button"
+                        className={done ? 'btn btn-subtle btn-sm' : 'btn btn-primary btn-sm'}
+                        onClick={() => toggleComplete(w)}
+                        disabled={completingId === w.id}
+                        title={done ? 'Mark workout as not done' : 'Mark workout as completed'}
+                      >
+                        <Icon name={done ? 'x' : 'check'} size={14} />
+                        {completingId === w.id
+                          ? 'Saving\u2026'
+                          : done
+                          ? 'Undo'
+                          : 'Mark done'}
+                      </button>
+                    ) : null}
                     {canManage ? (
                       <>
                         <button
@@ -382,6 +519,18 @@ function WorkoutDetailModal({ workout, onClose }) {
         <>
           <div className="cluster">
             <span className="muted">For {workout.athlete_name || `user #${workout.athlete_id}`}</span>
+            {workout.completed_at ? (
+              <span
+                className="badge"
+                style={{
+                  color: 'var(--success, #22c55e)',
+                  borderColor: 'rgba(34,197,94,0.4)',
+                }}
+                title={`Completed ${new Date(workout.completed_at).toLocaleString()}`}
+              >
+                ✓ Completed {new Date(workout.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            ) : null}
             {watched ? (
               <span
                 className="badge"

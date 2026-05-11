@@ -5,7 +5,7 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-const SAFE_COLUMNS = 'id, email, full_name, role, coach_id, profile, created_at';
+const SAFE_COLUMNS = 'id, email, full_name, role, coach_id, profile, xp, overall, created_at';
 
 function isAdmin(req) {
   return req.user.role === 'admin';

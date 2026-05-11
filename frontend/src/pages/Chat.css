@@ -193,6 +193,23 @@
   font-weight: 500;
 }
 
+.chat-bubble-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  opacity: 0.85;
+}
+
+.chat-bubble.mine .chat-bubble-meta {
+  justify-content: flex-end;
+}
+
+.chat-bubble.theirs .chat-bubble-meta {
+  justify-content: flex-start;
+}
+
 .chat-bubble-time {
   font-size: 0.68rem;
   margin-top: 4px;
@@ -219,6 +236,77 @@
   resize: none;
   min-height: 44px;
   max-height: 140px;
+}
+
+.chat-tag {
+  font-size: 0.62rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chat-tag-saved {
+  color: var(--accent, #f4b942);
+  border-color: rgba(244, 185, 66, 0.5);
+  background: rgba(244, 185, 66, 0.1);
+}
+
+.chat-tag-expiring {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.chat-tag-new {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.chat-bubble-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.chat-bubble-action:hover {
+  transform: scale(1.1);
+  background: rgba(244, 185, 66, 0.15);
+}
+
+.chat-bubble.is-saved {
+  box-shadow: 0 0 0 1px rgba(244, 185, 66, 0.45);
+}
+
+.chat-bubble.is-expiring {
+  transition: opacity 0.6s ease;
+}
+
+.chat-ephemeral-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 0;
+  background: rgba(239, 68, 68, 0.06);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.18);
+  font-size: 0.78rem;
+  color: var(--text-dim);
 }
 
 @media (max-width: 760px) {

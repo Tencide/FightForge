@@ -36,15 +36,19 @@ function macroPct(p) {
 }
 
 export default function Meals() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [items, setItems] = useState([]);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [completingId, setCompletingId] = useState(null);
+  const [xpToast, setXpToast] = useState(null);
 
   const canManage = user.role === 'coach' || user.role === 'admin';
+  const isAthlete = user.role === 'athlete';
 
   useEffect(() => {
     let cancelled = false;
@@ -104,6 +108,45 @@ export default function Meals() {
     }
   }
 
+  async function generateToday() {
+    setError('');
+    setGenerating(true);
+    try {
+      const created = await apiFetch('/api/meals/generate-today', { method: 'POST' });
+      setItems((prev) => [created, ...prev]);
+    } catch (err) {
+      setError(err.message || 'Could not generate today\u2019s meal plan');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function toggleComplete(m) {
+    const completed = !m.completed_at;
+    setCompletingId(m.id);
+    setError('');
+    try {
+      const updated = await apiFetch(`/api/meals/${m.id}/complete`, {
+        method: 'POST',
+        body: { completed },
+      });
+      setItems((prev) => prev.map((x) => (x.id === m.id ? { ...x, ...updated } : x)));
+      if (updated.xp && updated.xp.delta && user.role === 'athlete') {
+        setXpToast({
+          delta: updated.xp.delta,
+          overall: updated.xp.overall,
+          leveledUp: updated.xp.leveledUp,
+        });
+        refreshProfile().catch(() => {});
+        setTimeout(() => setXpToast(null), 4500);
+      }
+    } catch (err) {
+      setError(err.message || 'Could not update completion');
+    } finally {
+      setCompletingId(null);
+    }
+  }
+
   const grouped = useMemo(() => {
     if (!canManage) return { _: items };
     const out = {};
@@ -117,6 +160,23 @@ export default function Meals() {
 
   return (
     <div className="stack fade-up">
+      {xpToast && (
+        <div
+          className="success"
+          role="status"
+          aria-live="polite"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}
+        >
+          <span>
+            {xpToast.delta > 0 ? '+' : ''}
+            {xpToast.delta} XP
+            {xpToast.leveledUp ? ` \u2014 Overall up to ${xpToast.overall}!` : ` \u2014 Overall ${xpToast.overall}`}
+          </span>
+          <button type="button" className="btn-link" onClick={() => setXpToast(null)}>
+            dismiss
+          </button>
+        </div>
+      )}
       <header className="page-header with-actions">
         <div>
           <p className="eyebrow">Nutrition</p>
@@ -127,16 +187,32 @@ export default function Meals() {
               : 'Daily nutrition targets assigned to you. Hit your numbers, win your camp.'}
           </p>
         </div>
-        {canManage ? (
+        <div className="cluster">
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={() => setShowForm((v) => !v)}
+            className="btn btn-secondary"
+            onClick={generateToday}
+            disabled={generating}
+            title={
+              isAthlete
+                ? 'Auto-create today\u2019s meals from the library, scaled to your goal weight'
+                : 'Auto-create today\u2019s meals for yourself from the library'
+            }
           >
-            <Icon name={showForm ? 'x' : 'plus'} size={16} />
-            {showForm ? 'Cancel' : 'New plan'}
+            <Icon name="apple" size={16} />
+            {generating ? 'Generating\u2026' : 'Generate today\u2019s meals'}
           </button>
-        ) : null}
+          {canManage ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowForm((v) => !v)}
+            >
+              <Icon name={showForm ? 'x' : 'plus'} size={16} />
+              {showForm ? 'Cancel' : 'New plan'}
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {error ? <p className="error" role="alert">{error}</p> : null}
@@ -269,6 +345,11 @@ export default function Meals() {
               key={m.id}
               meal={m}
               canManage={canManage}
+              canComplete={
+                canManage || (isAthlete && m.athlete_id === user.id)
+              }
+              completing={completingId === m.id}
+              onToggleComplete={() => toggleComplete(m)}
               onDelete={() => removeMeal(m.id)}
               showAthlete={canManage}
             />
@@ -279,13 +360,64 @@ export default function Meals() {
   );
 }
 
-function MealCard({ meal, canManage, onDelete, showAthlete }) {
+function formatCompletedDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function MealCard({
+  meal,
+  canManage,
+  canComplete,
+  completing,
+  onToggleComplete,
+  onDelete,
+  showAthlete,
+}) {
   const macros = macroPct(meal);
+  const done = !!meal.completed_at;
   return (
-    <article className="list-item">
+    <article
+      className="list-item"
+      style={
+        done
+          ? {
+              borderColor: 'rgba(34,197,94,0.4)',
+              background:
+                'linear-gradient(180deg, rgba(34,197,94,0.05) 0%, transparent 100%)',
+            }
+          : undefined
+      }
+    >
       <div className="spread">
         <div style={{ minWidth: 0, flex: 1 }}>
-          <strong style={{ fontSize: '1rem' }}>{meal.title}</strong>
+          <div className="cluster" style={{ marginBottom: 4 }}>
+            <strong
+              style={{
+                fontSize: '1rem',
+                opacity: done ? 0.85 : 1,
+                textDecoration: done ? 'line-through' : 'none',
+                textDecorationColor: 'rgba(34,197,94,0.6)',
+                textDecorationThickness: '2px',
+              }}
+            >
+              {meal.title}
+            </strong>
+            {done ? (
+              <span
+                className="badge"
+                style={{
+                  color: 'var(--success, #22c55e)',
+                  borderColor: 'rgba(34,197,94,0.4)',
+                }}
+                title={`Completed ${new Date(meal.completed_at).toLocaleString()}`}
+              >
+                ✓ Done {formatCompletedDate(meal.completed_at)}
+              </span>
+            ) : null}
+          </div>
           {showAthlete ? (
             <div className="muted" style={{ marginTop: 4 }}>
               For {meal.athlete_name || `user #${meal.athlete_id}`}
@@ -295,16 +427,30 @@ function MealCard({ meal, canManage, onDelete, showAthlete }) {
             <p style={{ margin: '0.5rem 0 0' }}>{meal.description}</p>
           ) : null}
         </div>
-        {canManage ? (
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            onClick={onDelete}
-            title="Delete meal plan"
-          >
-            <Icon name="trash" size={14} />
-          </button>
-        ) : null}
+        <div className="cluster">
+          {canComplete ? (
+            <button
+              type="button"
+              className={done ? 'btn btn-subtle btn-sm' : 'btn btn-primary btn-sm'}
+              onClick={onToggleComplete}
+              disabled={completing}
+              title={done ? 'Mark as not done' : 'Mark as completed'}
+            >
+              <Icon name={done ? 'x' : 'check'} size={14} />
+              {completing ? 'Saving\u2026' : done ? 'Undo' : 'Mark done'}
+            </button>
+          ) : null}
+          {canManage ? (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={onDelete}
+              title="Delete meal plan"
+            >
+              <Icon name="trash" size={14} />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="cluster" style={{ marginTop: 'var(--s-3)' }}>
@@ -334,9 +480,18 @@ function MealCard({ meal, canManage, onDelete, showAthlete }) {
       ) : null}
 
       {meal.notes ? (
-        <p className="muted" style={{ margin: 'var(--s-3) 0 0' }}>
+        <pre
+          className="muted"
+          style={{
+            margin: 'var(--s-3) 0 0',
+            whiteSpace: 'pre-wrap',
+            fontFamily: 'var(--font-sans)',
+            lineHeight: 1.6,
+            fontSize: '0.92rem',
+          }}
+        >
           {meal.notes}
-        </p>
+        </pre>
       ) : null}
     </article>
   );

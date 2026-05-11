@@ -1,7 +1,12 @@
 const express = require('express');
 const { pool } = require('../config/db');
 const { authenticate } = require('../middleware/auth');
-const { generateMealPlan, profileSufficient } = require('../lib/planGenerators');
+const {
+  generateMealPlan,
+  generateDailyMealPlan,
+  profileSufficient,
+} = require('../lib/planGenerators');
+const { awardXp, XP_REWARDS } = require('../lib/xp');
 
 const router = express.Router();
 
@@ -138,6 +143,52 @@ router.post('/generate', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/meals/generate-today
+ * One-click "today's meal plan" — picks breakfast/lunch/dinner/snack from the
+ * curated meal_library, scaled to the user's goal-weight calorie target.
+ * Falls back to safe defaults if the profile is incomplete.
+ */
+router.post('/generate-today', authenticate, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, role, profile FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    const profile = parseProfile(rows[0].profile) || {};
+    const [library] = await pool.query('SELECT * FROM meal_library');
+    if (!library.length) {
+      return res.status(503).json({
+        error:
+          'Meal library is empty. Run the seed script (node scripts/seed.js) to populate it.',
+      });
+    }
+    const plan = generateDailyMealPlan(profile, library);
+    const [result] = await pool.query(
+      `INSERT INTO meals
+        (title, description, athlete_id, created_by, target_calories, protein_g, carbs_g, fat_g, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        plan.title,
+        plan.description,
+        req.user.id,
+        req.user.id,
+        plan.targetCalories,
+        plan.proteinG,
+        plan.carbsG,
+        plan.fatG,
+        plan.notes,
+      ]
+    );
+    const [created] = await pool.query('SELECT * FROM meals WHERE id = ?', [result.insertId]);
+    return res.status(201).json(created[0]);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.post('/', authenticate, async (req, res) => {
   try {
     if (!canManage(req.user)) {
@@ -246,6 +297,64 @@ router.put('/:id', authenticate, async (req, res) => {
     await pool.query(`UPDATE meals SET ${fields.join(', ')} WHERE id = ?`, vals);
     const [out] = await pool.query('SELECT * FROM meals WHERE id = ?', [id]);
     return res.json(out[0]);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * POST /api/meals/:id/complete
+ * Toggle meal-plan completion. Body: { completed: boolean }.
+ * Permissions match workouts: athlete-self or coach/admin who manages.
+ */
+router.post('/:id/complete', authenticate, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const [existing] = await pool.query('SELECT * FROM meals WHERE id = ?', [id]);
+    if (!existing.length) return res.status(404).json({ error: 'Meal not found' });
+    const m = existing[0];
+
+    const role = req.user.role;
+    const isAthleteOwner = role === 'athlete' && m.athlete_id === req.user.id;
+    const isAdmin = role === 'admin';
+    let isCoachOwner = false;
+    if (role === 'coach') {
+      if (m.created_by === req.user.id) {
+        isCoachOwner = true;
+      } else {
+        const ids = await athleteIdsForCoach(req.user.id);
+        isCoachOwner = ids.includes(m.athlete_id);
+      }
+    }
+    if (!isAthleteOwner && !isCoachOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Not allowed' });
+    }
+
+    const completed = req.body && req.body.completed !== undefined ? Boolean(req.body.completed) : true;
+    const wasComplete = !!m.completed_at;
+    let xpResult = null;
+
+    if (completed && !wasComplete) {
+      await pool.query(
+        'UPDATE meals SET completed_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [id]
+      );
+      xpResult = await awardXp(pool, m.athlete_id, XP_REWARDS.mealComplete);
+    } else if (!completed && wasComplete) {
+      await pool.query('UPDATE meals SET completed_at = NULL WHERE id = ?', [id]);
+      xpResult = await awardXp(pool, m.athlete_id, -XP_REWARDS.mealComplete);
+    }
+    const [rows] = await pool.query(
+      `SELECT m.*, u.full_name AS athlete_name FROM meals m
+       JOIN users u ON u.id = m.athlete_id WHERE m.id = ?`,
+      [id]
+    );
+    const payload = { ...rows[0] };
+    if (xpResult) {
+      payload.xp = { delta: xpResult.deltaApplied, total: xpResult.xp, overall: xpResult.overall, leveledUp: xpResult.leveledUp };
+    }
+    return res.json(payload);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });

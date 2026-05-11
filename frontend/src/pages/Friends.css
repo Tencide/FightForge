@@ -1,0 +1,248 @@
+/* ============================================================
+   Friends + leaderboard
+   ============================================================ */
+
+/* ---------- OVR badge (Madden-style player rating) ---------- */
+
+.ovr-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, #1d2330, #0e1119);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 0.4rem 0.55rem;
+  min-width: 56px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  overflow: hidden;
+}
+
+.ovr-badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 60%);
+  pointer-events: none;
+}
+
+.ovr-num {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.ovr-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.ovr-badge.ovr-lg {
+  min-width: 96px;
+  padding: 0.7rem 0.9rem;
+}
+
+.ovr-badge.ovr-lg .ovr-num {
+  font-size: 2.6rem;
+}
+
+.ovr-badge.ovr-lg .ovr-label {
+  font-size: 0.7rem;
+}
+
+.ovr-badge.ovr-sm {
+  min-width: 44px;
+  padding: 0.25rem 0.4rem;
+}
+
+.ovr-badge.ovr-sm .ovr-num {
+  font-size: 1rem;
+}
+
+.ovr-badge.ovr-sm .ovr-label {
+  font-size: 0.55rem;
+  margin-top: 0;
+}
+
+/* Tier accents */
+.ovr-badge.tier-rookie {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+
+.ovr-badge.tier-prospect {
+  border-color: rgba(74, 222, 128, 0.4);
+  color: #bbf7d0;
+  background: linear-gradient(135deg, #16261c, #0f1814);
+}
+
+.ovr-badge.tier-contender {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #bae6fd;
+  background: linear-gradient(135deg, #0f1c2a, #0a1018);
+}
+
+.ovr-badge.tier-pro {
+  border-color: rgba(244, 185, 66, 0.5);
+  color: #fde68a;
+  background: linear-gradient(135deg, #2a1f0d, #15110a);
+  box-shadow: 0 0 18px -8px rgba(244, 185, 66, 0.5) inset;
+}
+
+.ovr-badge.tier-elite {
+  border-color: rgba(167, 139, 250, 0.6);
+  color: #e9d5ff;
+  background: linear-gradient(135deg, #251a3d, #110b1f);
+  box-shadow: 0 0 22px -8px rgba(167, 139, 250, 0.65) inset;
+}
+
+/* ---------- "Your rating" hero card ---------- */
+
+.my-overall {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  background: linear-gradient(135deg, var(--surface), var(--bg-2));
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  position: relative;
+  overflow: hidden;
+}
+
+.my-overall::after {
+  content: '';
+  position: absolute;
+  inset: auto -10% -50% auto;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(closest-side, var(--brand-soft), transparent 70%);
+  pointer-events: none;
+}
+
+.my-overall-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  z-index: 1;
+}
+
+.my-overall-name {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 600px) {
+  .my-overall {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ---------- Friend list rows ---------- */
+
+.friend-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.friend-row:hover {
+  border-color: var(--border-strong);
+}
+
+.friend-row.is-self {
+  border-color: var(--brand);
+  background: linear-gradient(135deg, var(--brand-soft), var(--bg-2));
+  box-shadow: 0 0 0 1px var(--brand-soft) inset;
+}
+
+.friend-rank {
+  font-weight: 700;
+  font-size: 1rem;
+  min-width: 36px;
+  text-align: center;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.friend-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.friend-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.friend-tier {
+  font-size: 0.78rem;
+}
+
+.friend-actions {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ---------- XP progress bars ---------- */
+
+.xp-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.xp-bar-lg {
+  height: 10px;
+  margin-top: 6px;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand-strong), var(--brand));
+  border-radius: 999px;
+  transition: width var(--t-base) var(--ease);
+}
+
+@media (max-width: 540px) {
+  .friend-row {
+    flex-wrap: wrap;
+  }
+  .friend-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
