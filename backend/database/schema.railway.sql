@@ -1,7 +1,7 @@
 -- FightForge – MySQL schema for Railway’s default database
 -- Railway MySQL often has no separate `fightforge` DB; `MYSQLDATABASE` defaults to `railway`.
 -- In Railway → MySQL → Database → Data, paste this whole file and run it.
--- Then set backend DB_NAME to `railway` (or ${{MySQL.MYSQLDATABASE}}).
+-- Then set backend DB_NAME to railway, or reference MySQL.MYSQLDATABASE in Railway Variables.
 
 USE railway;
 
