@@ -114,6 +114,6 @@ Open the Vite URL (usually `http://127.0.0.1:5173`). The dev server proxies `/ap
 
 ## Deployment
 
-**Frontend (Vercel):** **[`docs/VERCEL.md`](docs/VERCEL.md)** — import repo, set **Root Directory** to **`frontend`**, add **`VITE_API_BASE`** (Production **and** Preview). Copy env names from **[`frontend/.env.vercel.example`](frontend/.env.vercel.example)**.
-
-Full stack (MySQL, API, CORS): **[`docs/DEPLOY.md`](docs/DEPLOY.md)**. Vercel-only routing details and troubleshooting: **[`docs/VERCEL.md`](docs/VERCEL.md)**.
+- **Frontend (Vercel):** **[`docs/VERCEL.md`](docs/VERCEL.md)** — Root **`frontend`**, **`VITE_API_BASE`** (Production + Preview). **[`frontend/.env.vercel.example`](frontend/.env.vercel.example)**  
+- **API (Fly.io):** **[`docs/FLY.md`](docs/FLY.md)** — Docker app, secrets, **`https://<app>.fly.dev`** → that origin is **`VITE_API_BASE`**.  
+- **Overview (MySQL + CORS):** **[`docs/DEPLOY.md`](docs/DEPLOY.md)**

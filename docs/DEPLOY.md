@@ -29,6 +29,8 @@ Use any host that can run **Node 20+** and reach MySQL (public host/port + user/
 
 **Docker:** the repo includes `backend/Dockerfile` (`CMD ["node", "server.js"]`). Point your platform at **`backend/`** as the build context.
 
+**Fly.io:** step-by-step (secrets, `https://<app>.fly.dev`, **`VITE_API_BASE`**) — **[`docs/FLY.md`](FLY.md)**.
+
 **Environment variables** (names are always the same; how you set them depends on the host):
 
 | Name | Value |
