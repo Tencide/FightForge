@@ -1,22 +1,24 @@
 # Fly.io config — FightForge API (Express)
-# After clone: cd backend && fly launch   (creates/updates app name and region)
 # Docs: https://fly.io/docs/reference/configuration/
+#
+# If you see "region  not found", run: flyctl platform regions
+# Then set a valid CODE below (e.g. iad = Ashburn, ord = Chicago).
 
-app = 'fightforge-api'
-primary_region = 'iad'
+app = "fightforge-api"
+primary_region = "iad"
 
 [build]
-  dockerfile = 'Dockerfile'
+  dockerfile = "Dockerfile"
 
 [http_service]
   internal_port = 5000
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['app']
+  processes = ["app"]
 
 [[vm]]
-  memory = '256mb'
-  cpu_kind = 'shared'
+  memory = "256mb"
+  cpu_kind = "shared"
   cpus = 1

@@ -149,6 +149,7 @@ Details: **[`VERCEL.md`](VERCEL.md)**.
 | Issue | What to check |
 |-------|----------------|
 | **503 / connection refused** | `fly logs` — crash loop? DB unreachable? |
+| **`region  not found` / empty region** | **`fly.toml`** must set **`primary_region`** to a real code (see `flyctl platform regions`, e.g. `iad`, `ord`). Use straight double-quotes in `fly.toml`. Or delete **`primary_region`** from `fly.toml` and run **`flyctl launch`** again so it prompts for a region. |
 | **JWT_SECRET must be set** | Backend refuses prod boot without a real secret — `fly secrets set JWT_SECRET=...` |
 | **MySQL connection errors** | Host allows Fly’s outbound IPs; correct **`DB_HOST`** / firewall / SSL mode if your provider requires TLS (may need code/config beyond `.env`). |
 | **CORS / login fails from Vercel** | **`CORS_ORIGIN`** exactly matches the browser origin (`https://your-project.vercel.app`). |
