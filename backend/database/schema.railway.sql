@@ -1,12 +1,9 @@
--- FightForge – MySQL schema
--- Run: mysql -u root -p < database/schema.sql
---
--- Railway: the managed DB often has no `fightforge` database; use
--- `database/schema.railway.sql` instead (or replace the first two statements
--- with `USE <your MYSQLDATABASE value>;`).
+-- FightForge – MySQL schema for Railway’s default database
+-- Railway MySQL often has no separate `fightforge` DB; `MYSQLDATABASE` defaults to `railway`.
+-- In Railway → MySQL → Database → Data, paste this whole file and run it.
+-- Then set backend DB_NAME to `railway` (or ${{MySQL.MYSQLDATABASE}}).
 
-CREATE DATABASE IF NOT EXISTS fightforge CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE fightforge;
+USE railway;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
