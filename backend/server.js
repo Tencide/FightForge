@@ -65,6 +65,15 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'fightforge-api' });
 });
 
+// No SPA on this service; bare domain hits should point people at /api.
+app.get('/', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'fightforge-api',
+    hint: 'Routes live under /api — try GET /api/health',
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/workouts', workoutRoutes);
