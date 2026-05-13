@@ -93,4 +93,4 @@ Open the Vite URL (usually `http://127.0.0.1:5173`). The dev server proxies `/ap
 
 See **[`docs/DEPLOY.md`](docs/DEPLOY.md)** for Vercel + Railway (or similar): MySQL, API, SPA, environment variables, and CORS.
 
-**Frontend-only on Vercel:** step-by-step is in **[`docs/VERCEL.md`](docs/VERCEL.md)** (env vars, root vs `frontend/` directory, troubleshooting).
+**Frontend-only on Vercel:** set project **Root Directory** to **`frontend`** and follow **[`docs/VERCEL.md`](docs/VERCEL.md)** (env vars, troubleshooting).

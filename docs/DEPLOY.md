@@ -87,13 +87,15 @@ variables UI only.
 
 ## 3. Deploy the frontend (Vercel)
 
-Full checklist (including importing the **repo root** with the root `vercel.json`): **[`VERCEL.md`](VERCEL.md)**.
+**Important:** In the Vercel project, set **Root Directory** to **`frontend`** (see **[`VERCEL.md`](VERCEL.md)**). Do not leave the root as `.` unless you add your own root `package.json` build.
 
 1. Sign in at <https://vercel.com> with GitHub.
 2. **Add New** → **Project** → **Import** your GitHub repository.
-3. **Configure Project** — choose one:
-   - **Option A (simplest):** **Root Directory** = `.` (repository root). The root [`vercel.json`](../vercel.json) builds `frontend/` and outputs `frontend/dist`.
-   - **Option B:** **Root Directory** = `frontend`. Then use defaults: **Framework**: Vite, **Build**: `npm run build`, **Output**: `dist` (see [`frontend/vercel.json`](../frontend/vercel.json)).
+3. **Configure Project**:
+   - **Root Directory**: **`frontend`** (required)
+   - **Framework Preset**: Vite (auto-detected)
+   - **Build Command**: `npm run build` (default)
+   - **Output Directory**: `dist` (default)
 4. **Environment Variables**:
 
    | Name | Value | Notes |
