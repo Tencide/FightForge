@@ -12,9 +12,10 @@ From the repo root:
 docker compose up --build
 ```
 
-Wait until the frontend is listening, then open **http://127.0.0.1:5173** .
+Wait until the frontend is listening.
 
-- The stack brings up **MySQL**, the **API** (port **5000**), and the **Vite dev server** (port **5173**).
+- **On this machine:** open **http://127.0.0.1:5173** (or **http://localhost:5173**).
+- The stack brings up **MySQL**, the **API** (port **5000**), and the **Vite dev server** (port **5173**). The dev server listens on **all interfaces** (`0.0.0.0`), so other devices can reach it if your network and firewall allow it.
 - Sample users are created automatically (`backend/scripts/seed.js` runs on each backend start; safe to repeat).
 - On this compose setup, **demo account buttons** are enabled on Login/Home. Use any sample email with password **`Password123!`**:
   - `admin@fightforge.test` — admin  
@@ -22,6 +23,27 @@ Wait until the frontend is listening, then open **http://127.0.0.1:5173** .
   - `athlete@fightforge.test` — athlete  
 
 Stop: `docker compose down`. Wipe the database and start clean: `docker compose down -v` then `docker compose up --build` again.
+
+### Same Wi-Fi: phones, tablets, or another computer
+
+`127.0.0.1` always means “this device only.” For teammates on **another** phone or laptop:
+
+1. Keep `docker compose up` running on the host that has the repo.
+2. On that host, find its **LAN IPv4** (same network everyone will use):
+   - **Windows:** `ipconfig` → your active adapter (Wi-Fi or Ethernet) → **IPv4 Address** (often `192.168.x.x` or `10.x.x.x`).
+   - **macOS:** System Settings → Network → Wi-Fi/Ethernet → IP address.
+   - **Linux:** `hostname -I` or your distro’s network panel.
+3. On the other device (connected to the **same** Wi-Fi or LAN), open **`http://<that-ip>:5173`** — for example `http://192.168.1.42:5173`.
+4. If the page never loads, the host’s **firewall** is usually blocking Docker’s published port **5173**. Allow inbound TCP **5173** for **Private** networks (Windows: Defender Firewall → allow an app → **Docker Desktop** / **wslhost**, or an inbound rule for port 5173). macOS: System Settings → Network → Firewall → options for Docker.
+
+The API is still reached through the Vite **proxy** (`/api` → backend), so testers do **not** need to open port 5000 on the phone’s browser for normal use.
+
+### Remote testers (different building / VPN / internet)
+
+The Docker quick start is meant for **local LAN** only. For people who are not on your Wi-Fi:
+
+- **Recommended:** deploy a preview environment (frontend + API + DB) using **[`docs/DEPLOY.md`](docs/DEPLOY.md)** and share that HTTPS URL.
+- **Ad-hoc demo from your laptop:** use an HTTPS tunnel to port **5173** (for example [ngrok](https://ngrok.com/) with `ngrok http 5173` while Compose is running) and share the tunnel URL. Treat that as **temporary** and do not use real secrets through it.
 
 For production deployment (separate hosts, env vars, CORS), see **[`docs/DEPLOY.md`](docs/DEPLOY.md)**.
 
@@ -77,7 +99,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL (usually `http://127.0.0.1:5173`). The dev server proxies `/api` to the backend (`VITE_PROXY_TARGET` in `frontend/.env`). Set `VITE_SHOW_DEMO_ACCOUNTS=true` in `frontend/.env` if you want the sample-account quick-fill on Login.
+Open the Vite URL (usually `http://127.0.0.1:5173`). The dev server proxies `/api` to the backend (`VITE_PROXY_TARGET` in `frontend/.env`). Set `VITE_SHOW_DEMO_ACCOUNTS=true` in `frontend/.env` if you want the sample-account quick-fill on Login. The Vite config uses **`host: true`**, so other devices on the same Wi-Fi can open **`http://<your-computer-LAN-IP>:5173`** (see the Docker “Same Wi-Fi” section above for finding the IP and firewall tips).
 
 ## API overview
 
