@@ -161,7 +161,7 @@ router.post('/generate-today', authenticate, async (req, res) => {
     if (!library.length) {
       return res.status(503).json({
         error:
-          'Meal library is empty. Run the seed script (node scripts/seed.js) to populate it.',
+          'Meal library is empty. Run `node scripts/seed.js` after applying the schema to populate it.',
       });
     }
     const plan = generateDailyMealPlan(profile, library);

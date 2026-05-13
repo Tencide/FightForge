@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
+import Avatar from '../components/Avatar';
 import './pageLayout.css';
 import './Chat.css';
 
@@ -30,16 +31,9 @@ function preview(text) {
   return trimmed.length > 60 ? `${trimmed.slice(0, 58)}…` : trimmed;
 }
 
-function Initials({ name }) {
-  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-  const text =
-    parts.length === 0
-      ? '?'
-      : parts.length === 1
-      ? parts[0].slice(0, 2).toUpperCase()
-      : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return <span className="chat-avatar">{text}</span>;
-}
+// Chat avatars now use the shared <Avatar /> component so they reflect any
+// uploaded profile photo. The `chat-avatar` class is preserved as a CSS
+// hook for sizing inside the conversation list.
 
 const EPHEMERAL_TTL_FALLBACK = 60;
 
@@ -221,7 +215,7 @@ export default function Chat() {
                       className={`chat-list-item ${isActive ? 'is-active' : ''}`}
                       onClick={() => setActive(c.partner.id)}
                     >
-                      <Initials name={c.partner.full_name} />
+                      <Avatar user={c.partner} size={36} className="chat-avatar" />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div className="chat-list-top">
                           <span className="chat-list-name">{c.partner.full_name}</span>
@@ -261,7 +255,7 @@ export default function Chat() {
           ) : (
             <>
               <header className="chat-thread-header">
-                <Initials name={thread.partner.full_name} />
+                <Avatar user={thread.partner} size={36} className="chat-avatar" />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontWeight: 600 }}>{thread.partner.full_name}</div>
                   <div className="muted" style={{ fontSize: '0.78rem' }}>

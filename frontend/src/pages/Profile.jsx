@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
+import Avatar from '../components/Avatar';
+import { resizeImageToSquareDataUrl } from '../utils/image';
 import './pageLayout.css';
 import './Profile.css';
 
@@ -24,27 +26,8 @@ function mergeGoals(profile) {
   return { ...EMPTY_GOALS, ...(profile || {}) };
 }
 
-function Initials({ name, size = 64 }) {
-  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-  const text =
-    parts.length === 0
-      ? '?'
-      : parts.length === 1
-      ? parts[0].slice(0, 2).toUpperCase()
-      : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return (
-    <span
-      className="profile-avatar"
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.36,
-      }}
-    >
-      {text}
-    </span>
-  );
-}
+// Local Initials helper removed; we now use the shared <Avatar /> component
+// that displays the user's uploaded photo (or initials fallback).
 
 function fmtDate(iso) {
   if (!iso) return '';
@@ -100,6 +83,47 @@ export default function Profile() {
   const [identityMsg, setIdentityMsg] = useState(null);
   const [goalsMsg, setGoalsMsg] = useState(null);
   const [genMsg, setGenMsg] = useState(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarMsg, setAvatarMsg] = useState(null);
+  const fileInputRef = useRef(null);
+
+  async function handleAvatarFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+    setAvatarMsg(null);
+    setAvatarSaving(true);
+    try {
+      const dataUrl = await resizeImageToSquareDataUrl(file, { size: 256, quality: 0.85 });
+      await apiFetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        body: { avatarUrl: dataUrl },
+      });
+      await refreshProfile();
+      setAvatarMsg({ type: 'success', text: 'Profile photo updated.' });
+    } catch (err) {
+      setAvatarMsg({ type: 'error', text: err.message || 'Could not upload photo' });
+    } finally {
+      setAvatarSaving(false);
+    }
+  }
+
+  async function removeAvatar() {
+    setAvatarMsg(null);
+    setAvatarSaving(true);
+    try {
+      await apiFetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        body: { avatarUrl: null },
+      });
+      await refreshProfile();
+      setAvatarMsg({ type: 'success', text: 'Photo removed.' });
+    } catch (err) {
+      setAvatarMsg({ type: 'error', text: err.message || 'Could not remove photo' });
+    } finally {
+      setAvatarSaving(false);
+    }
+  }
 
   useEffect(() => {
     refreshProfile().catch(() => {});
@@ -231,7 +255,16 @@ export default function Profile() {
       </header>
 
       <section className="profile-hero">
-        <Initials name={user?.full_name} />
+        <div className="profile-avatar-wrap">
+          <Avatar user={user} size={88} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            style={{ display: 'none' }}
+            onChange={handleAvatarFile}
+          />
+        </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="cluster" style={{ marginBottom: 4 }}>
             <h2 className="section-title" style={{ fontSize: '1.15rem' }}>
@@ -243,6 +276,38 @@ export default function Profile() {
           <div className="muted" style={{ marginTop: 4 }}>
             Member since {fmtDate(user?.created_at)}
           </div>
+          <div className="cluster" style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className="btn btn-subtle btn-sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarSaving}
+            >
+              {avatarSaving
+                ? 'Saving…'
+                : user?.avatar_url
+                ? 'Change photo'
+                : 'Upload photo'}
+            </button>
+            {user?.avatar_url && (
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={removeAvatar}
+                disabled={avatarSaving}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          {avatarMsg && (
+            <p
+              className={avatarMsg.type === 'error' ? 'error' : 'success'}
+              style={{ marginTop: 8 }}
+            >
+              {avatarMsg.text}
+            </p>
+          )}
         </div>
         <button type="button" className="btn btn-subtle btn-sm" onClick={() => { logout(); navigate('/'); }}>
           Log out

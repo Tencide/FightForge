@@ -82,7 +82,7 @@ export default function Signup() {
               className="input"
               type="email"
               autoComplete="email"
-              placeholder="you@fightforge.test"
+              placeholder="you@example.com"
               value={form.email}
               onChange={update('email')}
               required

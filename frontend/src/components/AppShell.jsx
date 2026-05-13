@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Avatar from './Avatar';
 import styles from './AppShell.module.css';
 
 const ATHLETE_NAV = [
@@ -63,16 +64,8 @@ function BrandMark() {
   );
 }
 
-function Initials({ name }) {
-  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-  const text =
-    parts.length === 0
-      ? '?'
-      : parts.length === 1
-      ? parts[0].slice(0, 2).toUpperCase()
-      : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return <span className={styles.avatar}>{text}</span>;
-}
+// The shared Avatar component renders the user's uploaded photo or a
+// colored initials fallback when they haven't set one yet.
 
 export function AppShell() {
   const { user, logout } = useAuth();
@@ -152,7 +145,7 @@ export function AppShell() {
                   )}
                 </span>
               </div>
-              <Initials name={user?.full_name} />
+              <Avatar user={user} size={34} />
             </Link>
             <button type="button" className={styles.logout} onClick={logout} title="Log out">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -177,7 +170,7 @@ export function AppShell() {
       </main>
 
       <footer className={styles.footer}>
-        <span>FightForge — class build, AL_4</span>
+        <span>FightForge</span>
         <span className="dim">v1.0</span>
       </footer>
     </div>

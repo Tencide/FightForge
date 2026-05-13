@@ -1,6 +1,15 @@
 const jwt = require('jsonwebtoken');
 
+// Hardcoded fallback only ever applies in dev (NODE_ENV !== 'production').
+// In production server.js refuses to boot without a real JWT_SECRET, so we
+// can never accidentally serve signed-with-public-secret tokens.
 const JWT_SECRET = process.env.JWT_SECRET || 'fightforge-dev-secret-change-me';
+
+if (process.env.NODE_ENV !== 'production' && !process.env.JWT_SECRET) {
+  console.warn(
+    '[auth] JWT_SECRET not set; using dev fallback. Set a real secret before deploying.'
+  );
+}
 
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });

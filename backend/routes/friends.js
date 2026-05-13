@@ -4,7 +4,8 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-const FRIEND_USER_COLUMNS = 'u.id, u.full_name, u.email, u.role, u.xp, u.overall';
+const FRIEND_USER_COLUMNS =
+  'u.id, u.full_name, u.email, u.role, u.xp, u.overall, u.avatar_url';
 
 /**
  * GET /api/friends
@@ -67,7 +68,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
   try {
     const me = req.user.id;
     const [rows] = await pool.query(
-      `SELECT u.id, u.full_name, u.role, u.xp, u.overall,
+      `SELECT u.id, u.full_name, u.role, u.xp, u.overall, u.avatar_url,
               (u.id = ?) AS is_self
          FROM users u
         WHERE u.id = ?
@@ -99,7 +100,7 @@ router.get('/search', authenticate, async (req, res) => {
     const me = req.user.id;
     const like = `%${q}%`;
     const [rows] = await pool.query(
-      `SELECT u.id, u.full_name, u.email, u.role, u.xp, u.overall
+      `SELECT u.id, u.full_name, u.email, u.role, u.xp, u.overall, u.avatar_url
          FROM users u
         WHERE u.id <> ?
           AND (u.full_name LIKE ? OR u.email LIKE ?)

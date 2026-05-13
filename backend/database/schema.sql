@@ -1,4 +1,4 @@
--- FightForge – MySQL schema (SE/COM S 3190)
+-- FightForge – MySQL schema
 -- Run: mysql -u root -p < database/schema.sql
 
 CREATE DATABASE IF NOT EXISTS fightforge CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS users (
   role ENUM('athlete', 'coach', 'admin') NOT NULL DEFAULT 'athlete',
   coach_id INT UNSIGNED NULL,
   profile JSON DEFAULT NULL,
+  -- Data URL of a client-resized JPEG (typically 256x256 ~30 KB). MEDIUMTEXT
+  -- caps at 16 MB which is far more than needed; server-side size limit is
+  -- enforced in the route handler.
+  avatar_url MEDIUMTEXT DEFAULT NULL,
   -- Madden-style player rating. Everyone starts at 60. Each 100 XP earned by
   -- completing workouts/meals raises overall by 1, capped at 99.
   xp INT UNSIGNED NOT NULL DEFAULT 0,

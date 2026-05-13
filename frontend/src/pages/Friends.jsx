@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import Avatar from '../components/Avatar';
 import './pageLayout.css';
 import './Friends.css';
 
@@ -45,6 +46,7 @@ function PersonRow({ person, isSelf, rank, children }) {
   return (
     <div className={`friend-row ${isSelf ? 'is-self' : ''}`}>
       {rank != null && <div className="friend-rank">#{rank}</div>}
+      <Avatar user={person} size={44} />
       <OvrBadge overall={person.overall} />
       <div className="friend-meta">
         <div className="friend-name">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
+import { SHOW_DEMO_ACCOUNTS } from '../config';
 import './pageLayout.css';
 import './AuthLayout.css';
 
@@ -12,7 +13,7 @@ function postLoginPath(role) {
   return '/';
 }
 
-const DEMO_ACCOUNTS = [
+const SAMPLE_ACCOUNTS = [
   { email: 'athlete@fightforge.test', label: 'Athlete', badge: 'badge-athlete' },
   { email: 'coach@fightforge.test', label: 'Coach', badge: 'badge-coach' },
   { email: 'admin@fightforge.test', label: 'Admin', badge: 'badge-admin' },
@@ -44,7 +45,7 @@ export default function Login() {
     }
   }
 
-  function fillDemo(addr) {
+  function fillSample(addr) {
     setEmail(addr);
     setPassword('Password123!');
     setError('');
@@ -66,7 +67,7 @@ export default function Login() {
               className="input"
               type="email"
               autoComplete="username"
-              placeholder="you@fightforge.test"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -95,26 +96,29 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="divider" />
-
-        <p className="muted" style={{ marginBottom: 'var(--s-2)' }}>
-          Quick fill demo accounts (password <span className="mono">Password123!</span>):
-        </p>
-        <div className="cluster">
-          {DEMO_ACCOUNTS.map((d) => (
-            <button
-              key={d.email}
-              type="button"
-              className="btn btn-subtle btn-sm"
-              onClick={() => fillDemo(d.email)}
-            >
-              <span className={`badge ${d.badge}`} style={{ marginRight: 4 }}>
-                {d.label}
-              </span>
-              {d.email}
-            </button>
-          ))}
-        </div>
+        {SHOW_DEMO_ACCOUNTS && (
+          <>
+            <div className="divider" />
+            <p className="muted" style={{ marginBottom: 'var(--s-2)' }}>
+              Quick fill sample accounts (password <span className="mono">Password123!</span>):
+            </p>
+            <div className="cluster">
+              {SAMPLE_ACCOUNTS.map((d) => (
+                <button
+                  key={d.email}
+                  type="button"
+                  className="btn btn-subtle btn-sm"
+                  onClick={() => fillSample(d.email)}
+                >
+                  <span className={`badge ${d.badge}`} style={{ marginRight: 4 }}>
+                    {d.label}
+                  </span>
+                  {d.email}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="auth-aside">

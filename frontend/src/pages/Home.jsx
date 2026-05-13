@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
+import { SHOW_DEMO_ACCOUNTS } from '../config';
 import './pageLayout.css';
 import './Home.css';
 
@@ -119,7 +120,7 @@ export default function Home() {
           <h2 className="page-title" style={{ fontSize: '1.4rem' }}>
             Everything you need to run a fight camp
           </h2>
-          <span className="muted">Built across 11 feature branches by team AL_4</span>
+          <span className="muted">Open source · train smarter, cut cleaner, stay connected</span>
         </div>
         <div className="card-grid-md" style={{ marginTop: 'var(--s-4)' }}>
           {FEATURES.map((f) => (
@@ -137,18 +138,27 @@ export default function Home() {
       <section className="home-cta card">
         <div>
           <h2 className="section-title" style={{ fontSize: '1.15rem' }}>
-            Try it with seeded demo accounts
+            {SHOW_DEMO_ACCOUNTS ? 'Try sample accounts (local only)' : 'Ready to start training?'}
           </h2>
           <p className="muted" style={{ marginTop: 'var(--s-1)' }}>
-            Password <span className="mono">Password123!</span> on{' '}
-            <span className="mono">athlete@fightforge.test</span>,{' '}
-            <span className="mono">coach@fightforge.test</span>, or{' '}
-            <span className="mono">admin@fightforge.test</span>.
+            {SHOW_DEMO_ACCOUNTS ? (
+              <>
+                Password <span className="mono">Password123!</span> on{' '}
+                <span className="mono">athlete@fightforge.test</span>,{' '}
+                <span className="mono">coach@fightforge.test</span>, or{' '}
+                <span className="mono">admin@fightforge.test</span>.
+              </>
+            ) : (
+              <>
+                Create a free account and start tracking workouts, meals, and progress today.
+                Friends, leaderboards, and a curated MMA workout library are all included.
+              </>
+            )}
           </p>
         </div>
         {!isAuthenticated ? (
-          <Link to="/login" className="btn btn-subtle">
-            Take the tour
+          <Link to={SHOW_DEMO_ACCOUNTS ? '/login' : '/signup'} className="btn btn-subtle">
+            {SHOW_DEMO_ACCOUNTS ? 'Take the tour' : 'Create account'}
             <Icon name="chevronRight" size={16} />
           </Link>
         ) : null}

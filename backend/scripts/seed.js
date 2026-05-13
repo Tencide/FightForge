@@ -1,15 +1,15 @@
 /**
- * Seed demo accounts (run after schema.sql).
+ * Optional sample data and library seeds (run after schema.sql).
  * Usage: node scripts/seed.js
  */
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/db');
 
-const DEMO_PASSWORD = 'Password123!';
+const SAMPLE_PASSWORD = 'Password123!';
 
 async function main() {
-  const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const hash = await bcrypt.hash(SAMPLE_PASSWORD, 10);
 
   const [admins] = await pool.query("SELECT id FROM users WHERE email = 'admin@fightforge.test'");
   if (!admins.length) {
@@ -24,7 +24,7 @@ async function main() {
   if (!coaches.length) {
     const [r] = await pool.query(
       `INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, 'coach')`,
-      ['coach@fightforge.test', hash, 'Demo Coach']
+      ['coach@fightforge.test', hash, 'Sample Coach']
     );
     coachId = r.insertId;
   } else {
@@ -35,7 +35,7 @@ async function main() {
   if (!athletes.length) {
     await pool.query(
       `INSERT INTO users (email, password_hash, full_name, role, coach_id) VALUES (?, ?, ?, 'athlete', ?)`,
-      ['athlete@fightforge.test', hash, 'Demo Athlete', coachId]
+      ['athlete@fightforge.test', hash, 'Sample Athlete', coachId]
     );
   } else {
     await pool.query('UPDATE users SET coach_id = ? WHERE email = ?', [coachId, 'athlete@fightforge.test']);
@@ -71,7 +71,7 @@ async function main() {
       { offset: 21, weight: 190.5, bench: 220, squat: 305, cardio: 28, notes: '' },
       { offset: 14, weight: 188.0, bench: 220, squat: 310, cardio: 30, notes: 'Felt strong' },
       { offset: 7, weight: 186.5, bench: 225, squat: 315, cardio: 30, notes: '' },
-      { offset: 0, weight: 185.0, bench: 225, squat: 315, cardio: 30, notes: 'Baseline entry from seed' },
+      { offset: 0, weight: 185.0, bench: 225, squat: 315, cardio: 30, notes: 'Baseline entry (sample data)' },
     ];
     for (const p of points) {
       await pool.query(
@@ -124,10 +124,10 @@ async function main() {
   await seedWorkoutLibrary();
   await seedMealLibrary();
 
-  console.log('Seed complete. Demo password for all demo accounts:', DEMO_PASSWORD);
+  console.log('Seed complete. Sample password for bundled test accounts:', SAMPLE_PASSWORD);
   console.log('  admin@fightforge.test (admin)');
   console.log('  coach@fightforge.test (coach)');
-  console.log('  athlete@fightforge.test (athlete, assigned to coach)');
+  console.log('  athlete@fightforge.test (athlete, assigned to sample coach)');
   await pool.end();
 }
 

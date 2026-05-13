@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "FightForge API (Express + MySQL)",
   "license": "ISC",
-  "author": "AL_4 - Final Project Backend",
+  "author": "FightForge contributors",
   "type": "commonjs",
   "main": "server.js",
   "scripts": {

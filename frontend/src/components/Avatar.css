@@ -1,0 +1,25 @@
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  user-select: none;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(244, 185, 66, 0.25), rgba(226, 62, 87, 0.2));
+  border: 1px solid var(--border-strong);
+  color: var(--brand);
+}
+
+.avatar-img {
+  padding: 0;
+  object-fit: cover;
+  background: var(--bg-2);
+}
+
+.avatar-initials {
+  /* Solid color background defined on .avatar */
+}

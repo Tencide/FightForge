@@ -5,7 +5,14 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-const SAFE_COLUMNS = 'id, email, full_name, role, coach_id, profile, xp, overall, created_at';
+const SAFE_COLUMNS =
+  'id, email, full_name, role, coach_id, profile, avatar_url, xp, overall, created_at';
+
+// Reject oversized avatar payloads early. A 256x256 JPEG at q=0.85 is ~30 KB
+// raw / ~40 KB base64; 700 KB is a generous ceiling that still avoids
+// abusing the row.
+const MAX_AVATAR_LENGTH = 700 * 1024;
+const AVATAR_DATA_URL_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/;
 
 function isAdmin(req) {
   return req.user.role === 'admin';
@@ -118,7 +125,7 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Not allowed' });
     }
 
-    const { fullName, email, password, role, coachId, profile } = req.body;
+    const { fullName, email, password, role, coachId, profile, avatarUrl } = req.body;
     const updates = [];
     const vals = [];
 
@@ -129,6 +136,26 @@ router.put('/:id', authenticate, async (req, res) => {
     if (profile !== undefined) {
       updates.push('profile = ?');
       vals.push(profile == null ? null : JSON.stringify(profile));
+    }
+    if (avatarUrl !== undefined) {
+      if (avatarUrl === null || avatarUrl === '') {
+        updates.push('avatar_url = ?');
+        vals.push(null);
+      } else {
+        const str = String(avatarUrl);
+        if (str.length > MAX_AVATAR_LENGTH) {
+          return res.status(413).json({
+            error: `Avatar too large (max ${Math.round(MAX_AVATAR_LENGTH / 1024)} KB). Try a smaller image.`,
+          });
+        }
+        if (!AVATAR_DATA_URL_RE.test(str)) {
+          return res.status(400).json({
+            error: 'Avatar must be a base64 data URL (data:image/...;base64,...)',
+          });
+        }
+        updates.push('avatar_url = ?');
+        vals.push(str);
+      }
     }
     if (email !== undefined) {
       const normalized = String(email).trim().toLowerCase();
