@@ -2,6 +2,8 @@
 
 MMA training and nutrition platform — **React** (Vite) frontend, **Node.js + Express** API, and **MySQL**, with role-based access for athletes, coaches, and admins.
 
+**One link for people’s phones (any network, HTTPS):** see **[`docs/SHARE_LINK.md`](docs/SHARE_LINK.md)** — deploy for a stable URL, or use a tunnel (e.g. ngrok) for a quick shareable link while your PC runs Docker.
+
 ## Quick start (easiest way to try it)
 
 **Requirements:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Compose).
@@ -40,12 +42,9 @@ The API is still reached through the Vite **proxy** (`/api` → backend), so tes
 
 ### Remote testers (different building / VPN / internet)
 
-The Docker quick start is meant for **local LAN** only. For people who are not on your Wi-Fi:
+**→ Use [`docs/SHARE_LINK.md`](docs/SHARE_LINK.md):** one **HTTPS** URL to text people (deploy once, or a tunnel like ngrok while Docker runs on your PC). Same-Wi-Fi `http://192.168…` is not enough for phones on cellular or other cities.
 
-- **Recommended:** deploy a preview environment (frontend + API + DB) using **[`docs/DEPLOY.md`](docs/DEPLOY.md)** and share that HTTPS URL.
-- **Ad-hoc demo from your laptop:** use an HTTPS tunnel to port **5173** (for example [ngrok](https://ngrok.com/) with `ngrok http 5173` while Compose is running) and share the tunnel URL. Treat that as **temporary** and do not use real secrets through it.
-
-For production deployment (separate hosts, env vars, CORS), see **[`docs/DEPLOY.md`](docs/DEPLOY.md)**.
+For production-style hosting details, see **[`docs/DEPLOY.md`](docs/DEPLOY.md)**.
 
 ## Maintainers
 

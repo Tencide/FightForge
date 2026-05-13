@@ -23,6 +23,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
+    // Dev: allow HTTPS tunnel hostnames (ngrok, Cloudflare) and same-Wi-Fi access.
+    // See docs/SHARE_LINK.md. Not used in `vite build`.
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:5000',
