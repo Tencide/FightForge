@@ -41,8 +41,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Named volume hides image node_modules — install deps on each start (fast when cached).
     # Seed is idempotent — safe to run on every start
-    command: sh -c "node scripts/seed.js && node server.js"
+    command: sh -c "npm install && node scripts/seed.js && node server.js"
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
@@ -61,6 +62,8 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+    # Named volume hides image node_modules — run npm install so firebase (etc.) exists.
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
