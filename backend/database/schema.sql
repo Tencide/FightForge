@@ -11,7 +11,6 @@ USE fightforge;
 CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
-  firebase_uid VARCHAR(128) NULL,
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(120) NOT NULL,
   role ENUM('athlete', 'coach', 'admin') NOT NULL DEFAULT 'athlete',
@@ -28,8 +27,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_users_coach FOREIGN KEY (coach_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
-
-CREATE UNIQUE INDEX idx_users_firebase_uid ON users (firebase_uid);
 
 -- Friend graph. One row per directed request; once accepted, both users see
 -- each other on their leaderboards. Status:

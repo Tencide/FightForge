@@ -10,8 +10,6 @@ The app is three pieces. They go in three different places.
 
 The frontend does **not** run the API or the database; it only talks to your API over HTTPS.
 
-Optional **Firebase Authentication** is in **[`FIREBASE.md`](FIREBASE.md)**. The default is still email/password against your Express API.
-
 ---
 
 ## 1. MySQL
@@ -44,10 +42,6 @@ Use any host that can run **Node 20+** and reach MySQL (public host/port + user/
 | `DB_NAME` | Database name (must match the `USE` / schema you applied) |
 | `JWT_SECRET` | Long random string (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`) |
 | `CORS_ORIGIN` | Your frontend origin(s), e.g. `https://your-app.vercel.app` (comma-separated for multiple) |
-
-Optional **Firebase Admin** (see [`FIREBASE.md`](FIREBASE.md)):
-
-`FIREBASE_SERVICE_ACCOUNT_JSON` — single-line service account JSON.
 
 **Raw `.env` style** (copy into a host “environment” or “secrets” editor):
 

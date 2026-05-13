@@ -2,17 +2,40 @@
 
 MMA training and nutrition platform — **React** (Vite) frontend, **Node.js + Express** API, and **MySQL**, with role-based access for athletes, coaches, and admins.
 
+## Quick start (easiest way to try it)
+
+**Requirements:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Compose).
+
+From the repo root:
+
+```bash
+docker compose up --build
+```
+
+Wait until the frontend is listening, then open **http://127.0.0.1:5173** .
+
+- The stack brings up **MySQL**, the **API** (port **5000**), and the **Vite dev server** (port **5173**).
+- Sample users are created automatically (`backend/scripts/seed.js` runs on each backend start; safe to repeat).
+- On this compose setup, **demo account buttons** are enabled on Login/Home. Use any sample email with password **`Password123!`**:
+  - `admin@fightforge.test` — admin  
+  - `coach@fightforge.test` — coach  
+  - `athlete@fightforge.test` — athlete  
+
+Stop: `docker compose down`. Wipe the database and start clean: `docker compose down -v` then `docker compose up --build` again.
+
+For production deployment (separate hosts, env vars, CORS), see **[`docs/DEPLOY.md`](docs/DEPLOY.md)**.
+
 ## Maintainers
 
 - **Craig Omozeje** — Backend, database, auth, workouts, progress, friends, messaging, and most of the React UI.
 - **Tucker Ambrose** — Team member.
 
-## Prerequisites
+## Prerequisites (manual / non-Docker setup)
 
 - Node.js 20+ recommended  
 - MySQL 8.x (or compatible) with a user that can create the `fightforge` database
 
-## Database setup
+## Database setup (manual)
 
 From the repo root:
 
@@ -22,11 +45,9 @@ mysql -u root -p < backend/database/schema.sql
 
 Copy `backend/.env.example` to `backend/.env` and set `DB_*`, `JWT_SECRET`, and (for production) `CORS_ORIGIN`.
 
-Optional **Firebase Authentication** (email/password via Google, then sync to MySQL): see **[`docs/FIREBASE.md`](docs/FIREBASE.md)**.
+### Optional: sample users (manual install)
 
-### Optional: sample users for local development
-
-After the schema exists, you can load **optional sample accounts** (same password for all three):
+After the schema exists:
 
 ```bash
 cd backend
@@ -34,28 +55,7 @@ npm install
 npm run seed
 ```
 
-Sample logins (change or remove these in production; use real signup instead):
-
-- `admin@fightforge.test` — admin  
-- `coach@fightforge.test` — coach  
-- `athlete@fightforge.test` — athlete (linked to the sample coach)
-
-## Run with Docker
-
-With Docker Desktop:
-
-```bash
-docker compose up --build
-```
-
-- MySQL is initialized from `backend/database/schema.sql` on first run.
-- The backend runs `scripts/seed.js` once on each container start (idempotent) so sample data and library rows exist for local testing.
-- Frontend: <http://127.0.0.1:5173>  
-- API health: <http://127.0.0.1:5000/api/health>
-
-Stop: `docker compose down`. Wipe the database volume: `docker compose down -v`.
-
-Default compose values are for **local development only**. For production, set strong secrets, `NODE_ENV=production`, and your real frontend origin in `CORS_ORIGIN` (see [`docs/DEPLOY.md`](docs/DEPLOY.md)).
+Same accounts and password **`Password123!`** as in Docker quick start above.
 
 ## Run locally (without Docker)
 
@@ -77,7 +77,7 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL (usually `http://127.0.0.1:5173`). The dev server proxies `/api` to the backend (`VITE_PROXY_TARGET` in `frontend/.env`).
+Open the Vite URL (usually `http://127.0.0.1:5173`). The dev server proxies `/api` to the backend (`VITE_PROXY_TARGET` in `frontend/.env`). Set `VITE_SHOW_DEMO_ACCOUNTS=true` in `frontend/.env` if you want the sample-account quick-fill on Login.
 
 ## API overview
 

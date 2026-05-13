@@ -1,8 +1,6 @@
-const crypto = require('crypto');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/db');
-const { getAdmin } = require('../config/firebaseAdmin');
 const { signToken, authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -40,69 +38,6 @@ router.post('/signup', async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error during signup' });
-  }
-});
-
-/**
- * After Firebase client sign-in / sign-up, exchange a Firebase ID token for a
- * FightForge JWT + MySQL user row (same shape as /login and /signup).
- */
-router.post('/firebase-session', async (req, res) => {
-  const admin = getAdmin();
-  if (!admin) {
-    return res.status(503).json({ error: 'Firebase is not configured on this server' });
-  }
-  try {
-    const { idToken, fullName } = req.body;
-    if (!idToken || typeof idToken !== 'string') {
-      return res.status(400).json({ error: 'idToken is required' });
-    }
-    const decoded = await admin.auth().verifyIdToken(idToken);
-    const uid = decoded.uid;
-    const normalized = String(decoded.email || '')
-      .trim()
-      .toLowerCase();
-    if (!normalized) {
-      return res.status(400).json({ error: 'Token has no email claim' });
-    }
-
-    let [rows] = await pool.query('SELECT * FROM users WHERE firebase_uid = ?', [uid]);
-    if (!rows.length) {
-      [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [normalized]);
-    }
-
-    let wasNew = false;
-    let row = rows[0];
-    if (row) {
-      if (!row.firebase_uid) {
-        await pool.query('UPDATE users SET firebase_uid = ? WHERE id = ?', [uid, row.id]);
-        const [again] = await pool.query('SELECT * FROM users WHERE id = ?', [row.id]);
-        row = again[0];
-      }
-    } else {
-      wasNew = true;
-      const fn = String(fullName || '').trim();
-      if (!fn) {
-        return res.status(400).json({ error: 'fullName is required when creating a new account' });
-      }
-      const placeholderHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
-      const [result] = await pool.query(
-        `INSERT INTO users (email, firebase_uid, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'athlete')`,
-        [normalized, uid, placeholderHash, fn]
-      );
-      const [created] = await pool.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
-      row = created[0];
-    }
-
-    const user = sanitizeUser(row);
-    const token = signToken({ id: user.id, role: user.role, email: user.email });
-    return res.status(wasNew ? 201 : 200).json({ token, user });
-  } catch (err) {
-    console.error(err);
-    if (err.code === 'auth/id-token-expired' || err.code === 'auth/argument-error') {
-      return res.status(401).json({ error: 'Invalid or expired Firebase token' });
-    }
-    return res.status(500).json({ error: 'Server error during Firebase session' });
   }
 });
 
