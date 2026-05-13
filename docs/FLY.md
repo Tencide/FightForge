@@ -58,6 +58,14 @@ The repo includes **`fly.toml`** with **`internal_port = 5000`** (matches `Docke
 
 ## 2. Set secrets (environment variables)
 
+**Option A — script (Windows, after you create `backend/.env.fly`):** copy **`backend/.env.fly.example`** to **`backend/.env.fly`**, edit values, then from **`backend/`**:
+
+```powershell
+pwsh -File scripts/apply-fly-secrets.ps1
+```
+
+**Option B — by hand** (any OS):
+
 Secrets are encrypted at rest; use them for passwords and JWT.
 
 ```bash

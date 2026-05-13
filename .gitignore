@@ -1,6 +1,8 @@
 **/node_modules
 dist
 .env
+.env.fly
+backend/.env.fly
 DEMO.md
 TA_DEMO_GUIDE.md
 FIGHTFORGE_TASK_SPLIT.md
