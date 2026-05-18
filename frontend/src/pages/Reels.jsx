@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
@@ -19,6 +20,8 @@ const SPORTS = [
 
 export default function Reels() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const deepLinkId = Number(searchParams.get('reel')) || null;
   const [reels, setReels] = useState([]);
   const [sport, setSport] = useState('');
   const [loading, setLoading] = useState(true);
@@ -79,6 +82,19 @@ export default function Reels() {
     return () => observer.disconnect();
   }, [reels]);
 
+  useEffect(() => {
+    if (!deepLinkId || !reels.length || !feedRef.current) return;
+    const idx = reels.findIndex((r) => r.id === deepLinkId);
+    if (idx < 0) return;
+    setActiveIndex(idx);
+    const el = slideRefs.current[idx];
+    if (el) {
+      window.requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [deepLinkId, reels]);
+
   async function handleLike(reel) {
     setLikingId(reel.id);
     try {
@@ -130,10 +146,21 @@ export default function Reels() {
           <h1 className="reels-toolbar-title">Reels</h1>
           <p className="muted reels-toolbar-sub">Combat sports clips from the community</p>
         </div>
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowPost((v) => !v)}>
-          <Icon name="plus" size={16} />
-          {showPost ? 'Close' : 'Post'}
-        </button>
+        <div className="reels-toolbar-actions">
+          <button
+            type="button"
+            className="btn btn-subtle btn-sm"
+            onClick={() => loadFeed(true)}
+            disabled={loading}
+            aria-label="Refresh feed"
+          >
+            <Icon name="refresh" size={16} />
+          </button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowPost((v) => !v)}>
+            <Icon name="plus" size={16} />
+            {showPost ? 'Close' : 'Post'}
+          </button>
+        </div>
       </header>
 
       {showPost ? (

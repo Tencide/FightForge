@@ -25,23 +25,48 @@ export default function ReelCard({
 }) {
   const videoRef = useRef(null);
   const [videoError, setVideoError] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
+  const [shareOk, setShareOk] = useState(false);
   const youtubeId = reel.videoKind === 'youtube' ? getYouTubeId(reel.videoUrl) : null;
   const mediaSrc = resolveMediaUrl(reel.videoUrl);
+  const isDirect = reel.videoKind === 'direct' && !videoError;
 
   useEffect(() => {
     setVideoError(false);
+    setSoundOn(false);
+    setShareOk(false);
   }, [reel.id, reel.videoUrl]);
 
   useEffect(() => {
+    if (!active) setSoundOn(false);
+  }, [active]);
+
+  useEffect(() => {
     const el = videoRef.current;
-    if (!el || reel.videoKind !== 'direct') return undefined;
+    if (!el || !isDirect) return undefined;
+    el.muted = !soundOn;
     if (active) {
       el.play().catch(() => {});
     } else {
       el.pause();
     }
     return undefined;
-  }, [active, reel.videoKind]);
+  }, [active, isDirect, soundOn]);
+
+  async function handleShare() {
+    const url = `${window.location.origin}/reels?reel=${reel.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'FightForge reel', url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareOk(true);
+      window.setTimeout(() => setShareOk(false), 2000);
+    } catch {
+      /* user cancelled share */
+    }
+  }
 
   return (
     <article className="reel-slide" data-active={active ? 'true' : 'false'}>
@@ -63,7 +88,7 @@ export default function ReelCard({
               className="reel-video-native"
               src={mediaSrc}
               playsInline
-              muted
+              muted={!soundOn}
               loop
               controls={active}
               preload="metadata"
@@ -95,6 +120,17 @@ export default function ReelCard({
         </div>
 
         <div className="reel-actions">
+          {isDirect ? (
+            <button
+              type="button"
+              className="reel-action-btn"
+              onClick={() => setSoundOn((v) => !v)}
+              aria-label={soundOn ? 'Mute' : 'Unmute'}
+              aria-pressed={soundOn}
+            >
+              <Icon name={soundOn ? 'volume-on' : 'volume-off'} size={22} />
+            </button>
+          ) : null}
           <button
             type="button"
             className={`reel-action-btn ${reel.likedByMe ? 'is-liked' : ''}`}
@@ -105,6 +141,10 @@ export default function ReelCard({
           >
             <Icon name="heart" size={22} />
             <span>{reel.likeCount}</span>
+          </button>
+          <button type="button" className="reel-action-btn" onClick={handleShare} aria-label="Share reel">
+            <Icon name="share" size={20} />
+            <span>{shareOk ? 'Copied' : 'Share'}</span>
           </button>
           {canDelete ? (
             <button
