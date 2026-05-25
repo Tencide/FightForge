@@ -1,62 +1,66 @@
-# FightForge — build & upload iOS from the cloud (no Mac required).
-# Setup: https://docs.codemagic.io/yaml-quick-start/capacitor-ios-workflow/
-#
-# 1. Sign up at https://codemagic.io and connect this GitHub repo.
-# 2. Team settings → codemagic.yaml → enable.
-# 3. Applications → FightForge → Code signing:
-#    - App Store Connect API key (recommended), or
-#    - Upload distribution certificate + provisioning profile for com.fightforge.app
-# 4. Register bundle ID com.fightforge.app in Apple Developer if not already.
-# 5. Push to main (or run workflow manually).
+  # FightForge — build & upload iOS from the cloud (no Mac required).
+  # Setup: https://docs.codemagic.io/yaml-quick-start/capacitor-ios-workflow/
+  #
+  # 1. Sign up at https://codemagic.io and connect this GitHub repo.
+  # 2. Team settings → codemagic.yaml → enable.
+  # 3. Applications → FightForge → Code signing:
+  #    - App Store Connect API key (recommended), or
+  #    - Upload distribution certificate + provisioning profile for com.fightforge.app
+  # 4. Register bundle ID com.fightforge.app in Apple Developer if not already.
+  # 5. Push to main (or run workflow manually).
 
-workflows:
-  fightforge-ios:
-    name: FightForge iOS (App Store)
-    max_build_duration: 90
-    instance_type: mac_mini_m2
-    # Must match the App Store Connect API key name in Codemagic → Settings → Integrations
-    integrations:
-      app_store_connect: Codemagic
+  workflows:
+    fightforge-ios:
+      name: FightForge iOS (App Store)
+      max_build_duration: 90
+      instance_type: mac_mini_m2
+      # Must match the App Store Connect API key name in Codemagic → Settings → Integrations
+      integrations:
+        app_store_connect: Codemagic
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.fightforge.app
       vars:
         XCODE_WORKSPACE: App.xcworkspace
         XCODE_SCHEME: App
         CM_BUNDLE_ID: com.fightforge.app
       node: v20
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-    scripts:
-      - name: Install dependencies and sync Capacitor
-        script: |
-          cd frontend
-          npm ci
-          npm run cap:sync
+      triggering:
+        events:
+          - push
+        branch_patterns:
+          - pattern: main
+            include: true
+      scripts:
+        - name: Install dependencies and sync Capacitor
+          script: |
+            cd frontend
+            npm ci
+            npm run cap:sync
       - name: CocoaPods
         script: |
           cd frontend/ios/App
           pod install
+      - name: Fetch signing files from Apple
+        script: |
+          app-store-connect fetch-signing-files "$CM_BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Add certificates to keychain
+        script: keychain add-certificates
       - name: Apply code signing profiles
         script: xcode-project use-profiles
-      - name: Build IPA
-        script: |
-          cd frontend/ios/App
-          xcode-project build-ipa \
-            --workspace "$CM_BUILD_DIR/frontend/ios/App/$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
-    artifacts:
-      - frontend/ios/App/build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        beta_groups:
-          - Internal Testers
-        submit_to_app_store: false
+        - name: Build IPA
+          script: |
+            cd frontend/ios/App
+            xcode-project build-ipa \
+              --workspace "$CM_BUILD_DIR/frontend/ios/App/$XCODE_WORKSPACE" \
+              --scheme "$XCODE_SCHEME"
+      artifacts:
+        - frontend/ios/App/build/ios/ipa/*.ipa
+        - /tmp/xcodebuild_logs/*.log
+      publishing:
+        app_store_connect:
+          auth: integration
+          submit_to_testflight: true
+          beta_groups:
+            - Internal Testers
+          submit_to_app_store: false
