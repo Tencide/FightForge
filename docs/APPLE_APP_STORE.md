@@ -187,6 +187,26 @@ One afternoon on a friend’s MacBook: `npm run cap:sync`, Archive, upload. You 
 
 ---
 
+### Codemagic: `integration "Codemagic" does not exist`
+
+The name in `integrations.app_store_connect` must **exactly** match **Settings → Integrations** (e.g. you may have named it `FightForge` not `Codemagic`).
+
+**Easier fix (current repo):** use environment variables instead of `auth: integration`:
+
+1. **Applications → FightForge → Environment variables**
+2. **Add group:** `app_store_credentials` (enable for this workflow)
+3. Add three **secret** variables:
+
+| Variable | Value |
+|----------|--------|
+| `APP_STORE_CONNECT_PRIVATE_KEY` | Entire `.p8` file (including BEGIN/END lines) |
+| `APP_STORE_CONNECT_KEY_IDENTIFIER` | Key ID from App Store Connect → Integrations → Keys |
+| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID at top of Keys page |
+
+4. Rebuild on latest `main`.
+
+---
+
 ### Codemagic: “No matching profiles found”
 
 That error means Codemagic had **no App Store certificate/profile** for `com.fightforge.app`.

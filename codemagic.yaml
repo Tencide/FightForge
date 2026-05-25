@@ -1,20 +1,22 @@
-# FightForge — build & upload iOS from the cloud (no Mac required).
-# Setup: https://docs.codemagic.io/yaml-quick-start/capacitor-ios-workflow/
+# FightForge — iOS build on Codemagic (no Mac required).
 #
-# 1. Sign up at https://codemagic.io and connect this GitHub repo.
-# 2. Team settings → codemagic.yaml → enable.
-# 3. Settings → Integrations → Developer Portal + App Store Connect (API key "Codemagic")
-# 4. Register bundle ID com.fightforge.app in Apple Developer if not already.
-# 5. Push to main (or run workflow manually).
+# REQUIRED in Codemagic → FightForge app → Environment variables
+# Create a group named "app_store_credentials" (mark secrets) with:
+#   APP_STORE_CONNECT_PRIVATE_KEY  = full contents of your .p8 file
+#   APP_STORE_CONNECT_KEY_IDENTIFIER = Key ID (10 chars from App Store Connect)
+#   APP_STORE_CONNECT_ISSUER_ID    = Issuer ID (UUID from App Store Connect)
+#
+# Alternative: use integrations.app_store_connect: YOUR_KEY_NAME
+# where YOUR_KEY_NAME matches Settings → Integrations exactly.
 
 workflows:
   fightforge-ios:
     name: FightForge iOS (App Store)
     max_build_duration: 90
     instance_type: mac_mini_m2
-    integrations:
-      app_store_connect: Codemagic
     environment:
+      groups:
+        - app_store_credentials
       vars:
         XCODE_WORKSPACE: App.xcworkspace
         XCODE_SCHEME: App
@@ -56,7 +58,9 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         beta_groups:
           - Internal Testers
