@@ -194,7 +194,7 @@ The name in `integrations.app_store_connect` must **exactly** match **Settings �
 **Easier fix (current repo):** use environment variables instead of `auth: integration`:
 
 1. **Applications → FightForge → Environment variables**
-2. **Add group:** `app_store_credentials` (enable for this workflow)
+2. **Add group:** `appstore_credentials` (must match yaml exactly — no extra underscores)
 3. Add three **secret** variables:
 
 | Variable | Value |
