@@ -12,8 +12,12 @@ const vercelPlatformBuild =
 const vercelWithApiBase =
   vercelPlatformBuild && !!(process.env.VITE_API_BASE || '').trim();
 
+// Capacitor loads bundled assets from the app package; relative base required.
+const capacitorBuild = process.env.CAPACITOR === '1';
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: capacitorBuild ? './' : '/',
   define: vercelWithApiBase
     ? {
         'import.meta.env.VITE_API_BASE': JSON.stringify(''),

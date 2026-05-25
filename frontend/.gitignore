@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Capacitor — keep ios/ in git; ignore sync output and Xcode junk
+ios/App/App/public
+ios/App/Pods
+ios/DerivedData
+*.xcuserstate
+xcuserdata/

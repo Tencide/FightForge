@@ -9,16 +9,23 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/apply-vercel-api-rewrite.mjs && vite build",
+    "build:mobile": "cross-env CAPACITOR=1 VITE_API_BASE=https://fightforge-api.fly.dev vite build",
+    "cap:sync": "npm run build:mobile && npx cap sync",
+    "cap:ios": "npx cap open ios",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/core": "^7.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.6.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.2.0",
+    "@capacitor/ios": "^7.2.0",
     "@eslint/js": "^9.39.4",
+    "cross-env": "^7.0.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.4",

@@ -1,0 +1,14 @@
+{
+  "appId": "com.fightforge.app",
+  "appName": "FightForge",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "automatic",
+    "allowsLinkPreview": true,
+    "scheme": "FightForge"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
