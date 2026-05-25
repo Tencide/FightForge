@@ -60,6 +60,20 @@ export default function WorkoutLibrary() {
   const [pickerForId, setPickerForId] = useState(null);
   const [pickerAthleteId, setPickerAthleteId] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [communityOnly, setCommunityOnly] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    content: '',
+    videoUrl: '',
+    category: 'strength',
+    experienceLevel: 'intermediate',
+    durationMin: '60',
+    goals: ['cut', 'maintain', 'bulk'],
+  });
 
   const canManage = user.role === 'coach' || user.role === 'admin';
 
@@ -94,6 +108,7 @@ export default function WorkoutLibrary() {
         if (!tags.includes(goal)) return false;
       }
       if (hasVideoOnly && !w.video_url) return false;
+      if (communityOnly && !w.created_by) return false;
       if (q) {
         const haystack = `${w.title} ${w.description || ''} ${w.content || ''}`.toLowerCase();
         if (!haystack.includes(q)) return false;
@@ -120,7 +135,70 @@ export default function WorkoutLibrary() {
         list = [...list].sort((a, b) => a.title.localeCompare(b.title));
     }
     return list;
-  }, [items, search, category, level, goal, sort, hasVideoOnly]);
+  }, [items, search, category, level, goal, sort, hasVideoOnly, communityOnly]);
+
+  function toggleGoal(goalId) {
+    setForm((f) => {
+      const has = f.goals.includes(goalId);
+      const goals = has ? f.goals.filter((g) => g !== goalId) : [...f.goals, goalId];
+      return { ...f, goals: goals.length ? goals : ['maintain'] };
+    });
+  }
+
+  async function handleCreateLibrary(e) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError('');
+    setFeedback('');
+    try {
+      const created = await apiFetch('/api/workouts/library', {
+        method: 'POST',
+        body: {
+          title: form.title.trim(),
+          description: form.description.trim(),
+          content: form.content.trim(),
+          videoUrl: form.videoUrl.trim(),
+          category: form.category,
+          experienceLevel: form.experienceLevel,
+          durationMin: Number(form.durationMin) || 60,
+          goalAlignment: form.goals.join(','),
+        },
+      });
+      setItems((prev) => [...prev, created].sort((a, b) => a.title.localeCompare(b.title)));
+      setFeedback(`Added "${created.title}" to the library`);
+      setShowAddForm(false);
+      setForm({
+        title: '',
+        description: '',
+        content: '',
+        videoUrl: '',
+        category: 'strength',
+        experienceLevel: 'intermediate',
+        durationMin: '60',
+        goals: ['cut', 'maintain', 'bulk'],
+      });
+    } catch (err) {
+      setError(err.message || 'Could not add to library');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteLibrary(item) {
+    if (!window.confirm(`Remove "${item.title}" from the library?`)) return;
+    setDeletingId(item.id);
+    setError('');
+    try {
+      await apiFetch(`/api/workouts/library/${item.id}`, { method: 'DELETE' });
+      setItems((prev) => prev.filter((w) => w.id !== item.id));
+      setFeedback(`Removed "${item.title}" from the library`);
+      if (previewId === item.id) setPreviewId(null);
+    } catch (err) {
+      setError(err.message || 'Could not delete');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function handleAdd(template, athleteId) {
     setAdding(template.id);
@@ -155,14 +233,20 @@ export default function WorkoutLibrary() {
           <p className="eyebrow">Library</p>
           <h1 className="page-title">Workout templates</h1>
           <p className="page-lead">
-            Curated MMA training plans you can drop straight into your own workouts.
-            Search, filter, and preview the tutorial video before adding.
+            Browse official templates and community workouts. Add your own to share with everyone —
+            they show as Made by your name.
           </p>
         </div>
-        <Link to="/workouts" className="btn btn-subtle">
-          <Icon name="chevronRight" size={16} style={{ transform: 'rotate(180deg)' }} />
-          Back to workouts
-        </Link>
+        <div className="page-header-actions">
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddForm(true)}>
+            <Icon name="plus" size={16} />
+            Add to library
+          </button>
+          <Link to="/workouts" className="btn btn-subtle">
+            <Icon name="chevronRight" size={16} style={{ transform: 'rotate(180deg)' }} />
+            Back to workouts
+          </Link>
+        </div>
       </header>
 
       {error ? <p className="error" role="alert">{error}</p> : null}
@@ -254,6 +338,14 @@ export default function WorkoutLibrary() {
             />
             <span>With video only</span>
           </label>
+          <label className="lib-toggle">
+            <input
+              type="checkbox"
+              checked={communityOnly}
+              onChange={(e) => setCommunityOnly(e.target.checked)}
+            />
+            <span>Community only</span>
+          </label>
         </div>
 
         <div className="lib-meta">
@@ -270,6 +362,7 @@ export default function WorkoutLibrary() {
                 setLevel('all');
                 setGoal('all');
                 setHasVideoOnly(false);
+                setCommunityOnly(false);
               }}
             >
               <Icon name="x" size={14} /> Clear filters
@@ -313,6 +406,15 @@ export default function WorkoutLibrary() {
                 ) : null}
               </div>
               <h3 className="lib-title">{w.title}</h3>
+              <p className="lib-made-by">
+                {w.created_by_name ? (
+                  <>
+                    Made by: <strong>{w.created_by_name}</strong>
+                  </>
+                ) : (
+                  <span className="muted">FightForge official</span>
+                )}
+              </p>
               {w.description ? <p className="lib-desc">{w.description}</p> : null}
               <div className="lib-tags">
                 <span className="badge">{w.experience_level}</span>
@@ -335,6 +437,16 @@ export default function WorkoutLibrary() {
                 >
                   Preview
                 </button>
+                {(w.created_by === user.id || user.role === 'admin') && w.created_by ? (
+                  <button
+                    type="button"
+                    className="btn btn-subtle btn-sm"
+                    disabled={deletingId === w.id}
+                    onClick={() => handleDeleteLibrary(w)}
+                  >
+                    {deletingId === w.id ? '…' : 'Remove'}
+                  </button>
+                ) : null}
                 {pickerForId === w.id && canManage ? (
                   <div className="lib-picker">
                     <select
@@ -400,6 +512,117 @@ export default function WorkoutLibrary() {
         onClose={() => setPreviewId(null)}
         onAdd={(athleteId) => handleAdd(previewItem, athleteId)}
       />
+
+      <Modal open={showAddForm} onClose={() => setShowAddForm(false)} title="Add workout to library" size="md">
+        <form className="stack lib-add-form" onSubmit={handleCreateLibrary}>
+          <label className="label">
+            Title *
+            <input
+              className="input"
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              required
+              maxLength={200}
+            />
+          </label>
+          <label className="label">
+            Short description
+            <input
+              className="input"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="What is this session for?"
+            />
+          </label>
+          <label className="label">
+            Workout details
+            <textarea
+              className="input"
+              rows={5}
+              value={form.content}
+              onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+              placeholder="Warm-up, rounds, drills, cooldown…"
+            />
+          </label>
+          <label className="label">
+            YouTube URL (optional)
+            <input
+              className="input"
+              type="url"
+              value={form.videoUrl}
+              onChange={(e) => setForm((f) => ({ ...f, videoUrl: e.target.value }))}
+              placeholder="https://youtube.com/…"
+            />
+          </label>
+          <div className="lib-form-row">
+            <label className="label">
+              Category
+              <select
+                className="select"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+              >
+                {CATEGORY_OPTIONS.filter((o) => o.id !== 'all').map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="label">
+              Level
+              <select
+                className="select"
+                value={form.experienceLevel}
+                onChange={(e) => setForm((f) => ({ ...f, experienceLevel: e.target.value }))}
+              >
+                {LEVEL_OPTIONS.filter((o) => o.id !== 'all').map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="label">
+              Duration (min)
+              <input
+                className="input"
+                type="number"
+                min={5}
+                max={300}
+                value={form.durationMin}
+                onChange={(e) => setForm((f) => ({ ...f, durationMin: e.target.value }))}
+              />
+            </label>
+          </div>
+          <fieldset className="lib-goals-field">
+            <legend className="lib-filter-label">Goals</legend>
+            <div className="lib-goals-row">
+              {GOAL_OPTIONS.filter((o) => o.id !== 'all').map((o) => (
+                <label key={o.id} className="lib-toggle">
+                  <input
+                    type="checkbox"
+                    checked={form.goals.includes(o.id)}
+                    onChange={() => toggleGoal(o.id)}
+                  />
+                  <span>{o.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <p className="muted" style={{ fontSize: '0.85rem' }}>
+            This will appear in the library as <strong>Made by: {user.full_name}</strong>.
+          </p>
+          <div className="lib-form-actions">
+            <button type="button" className="btn btn-subtle" onClick={() => setShowAddForm(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? 'Saving…' : 'Publish to library'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
@@ -416,6 +639,15 @@ function LibraryPreview({ item, canManage, athletes, adding, onClose, onAdd }) {
     <Modal open={!!item} onClose={onClose} title={item?.title || ''} size="lg">
       {!item ? null : (
         <>
+          <p className="lib-made-by">
+            {item.created_by_name ? (
+              <>
+                Made by: <strong>{item.created_by_name}</strong>
+              </>
+            ) : (
+              <span className="muted">FightForge official</span>
+            )}
+          </p>
           <div className="cluster">
             <span className={`badge`}>{item.category}</span>
             <span className="badge">{item.experience_level}</span>

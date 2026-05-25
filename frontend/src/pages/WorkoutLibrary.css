@@ -131,6 +131,50 @@
   background: rgba(34, 197, 94, 0.08);
 }
 
+.lib-made-by {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.lib-made-by strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.lib-add-form .lib-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--s-3);
+}
+
+.lib-goals-field {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lib-goals-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.lib-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  justify-content: flex-end;
+  margin-top: var(--s-2);
+}
+
 .lib-title {
   margin: 0;
   font-size: 1.05rem;

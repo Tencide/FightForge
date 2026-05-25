@@ -87,7 +87,9 @@ CREATE TABLE IF NOT EXISTS workout_library (
   experience_level ENUM('beginner','intermediate','advanced') NOT NULL DEFAULT 'intermediate',
   duration_min INT UNSIGNED NOT NULL DEFAULT 60,
   goal_alignment VARCHAR(50) NOT NULL DEFAULT 'cut,maintain,bulk',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_by INT UNSIGNED NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_workout_library_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- Curated library of meal items the daily meal generator pulls from.
@@ -145,6 +147,7 @@ CREATE INDEX idx_progress_user ON progress_entries(user_id);
 CREATE INDEX idx_messages_pair ON messages(sender_id, recipient_id);
 CREATE INDEX idx_meal_library_type ON meal_library(meal_type);
 CREATE INDEX idx_workout_library_category ON workout_library(category);
+CREATE INDEX idx_workout_library_creator ON workout_library(created_by);
 CREATE INDEX idx_friendships_recipient ON friendships(recipient_id, status);
 CREATE INDEX idx_friendships_requester ON friendships(requester_id, status);
 

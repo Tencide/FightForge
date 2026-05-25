@@ -24,6 +24,44 @@ function canManageWorkouts(user) {
   return user.role === 'coach' || user.role === 'admin';
 }
 
+const LIBRARY_CATEGORIES = new Set([
+  'striking',
+  'strength',
+  'grappling',
+  'conditioning',
+  'cardio',
+  'recovery',
+]);
+const LIBRARY_LEVELS = new Set(['beginner', 'intermediate', 'advanced']);
+
+function mapLibraryRow(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    content: row.content,
+    video_url: row.video_url,
+    category: row.category,
+    experience_level: row.experience_level,
+    duration_min: row.duration_min,
+    goal_alignment: row.goal_alignment,
+    created_by: row.created_by,
+    created_by_name: row.created_by_name || null,
+    created_at: row.created_at,
+  };
+}
+
+async function fetchLibraryRow(id) {
+  const [rows] = await pool.query(
+    `SELECT wl.*, u.full_name AS created_by_name
+     FROM workout_library wl
+     LEFT JOIN users u ON u.id = wl.created_by
+     WHERE wl.id = ?`,
+    [id]
+  );
+  return rows.length ? mapLibraryRow(rows[0]) : null;
+}
+
 async function athleteIdsForCoach(coachId) {
   const [rows] = await pool.query(
     "SELECT id FROM users WHERE role = 'athlete' AND coach_id = ?",
@@ -78,11 +116,126 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.get('/library', authenticate, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM workout_library ORDER BY title ASC');
-    return res.json(rows);
+    const [rows] = await pool.query(
+      `SELECT wl.*, u.full_name AS created_by_name
+       FROM workout_library wl
+       LEFT JOIN users u ON u.id = wl.created_by
+       ORDER BY wl.title ASC`
+    );
+    return res.json(rows.map(mapLibraryRow));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * POST /api/workouts/library
+ * Any logged-in user can add a template to the shared library.
+ */
+router.post('/library', authenticate, async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      content,
+      videoUrl,
+      category,
+      experienceLevel,
+      durationMin,
+      goalAlignment,
+    } = req.body || {};
+
+    const titleVal = title == null ? '' : String(title).trim();
+    if (!titleVal) return res.status(400).json({ error: 'Title is required' });
+
+    const cat = category == null ? 'strength' : String(category).trim().toLowerCase();
+    if (!LIBRARY_CATEGORIES.has(cat)) {
+      return res.status(400).json({ error: 'Invalid category' });
+    }
+
+    const level =
+      experienceLevel == null ? 'intermediate' : String(experienceLevel).trim().toLowerCase();
+    if (!LIBRARY_LEVELS.has(level)) {
+      return res.status(400).json({ error: 'Invalid experience level' });
+    }
+
+    let duration = parseInt(durationMin, 10);
+    if (!Number.isFinite(duration) || duration < 5) duration = 60;
+    if (duration > 300) duration = 300;
+
+    let goals = 'cut,maintain,bulk';
+    if (goalAlignment != null && goalAlignment !== '') {
+      if (Array.isArray(goalAlignment)) {
+        goals = goalAlignment.map((g) => String(g).trim().toLowerCase()).filter(Boolean).join(',');
+      } else {
+        goals = String(goalAlignment)
+          .split(',')
+          .map((g) => g.trim().toLowerCase())
+          .filter(Boolean)
+          .join(',');
+      }
+      if (!goals) goals = 'cut,maintain,bulk';
+    }
+
+    const video =
+      videoUrl == null || String(videoUrl).trim() === ''
+        ? null
+        : String(videoUrl).trim().slice(0, 500);
+
+    const [result] = await pool.query(
+      `INSERT INTO workout_library
+        (title, description, content, video_url, category, experience_level, duration_min, goal_alignment, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        titleVal.slice(0, 200),
+        description == null ? '' : String(description).trim(),
+        content == null ? '' : String(content).trim(),
+        video,
+        cat,
+        level,
+        duration,
+        goals.slice(0, 50),
+        req.user.id,
+      ]
+    );
+
+    const row = await fetchLibraryRow(result.insertId);
+    return res.status(201).json(row);
+  } catch (err) {
+    console.error(err);
+    if (err.code === 'ER_BAD_FIELD_ERROR') {
+      return res.status(503).json({
+        error: 'Library contributor support is not enabled yet. Run workout_library_contributors_migration.sql on your database.',
+      });
+    }
+    return res.status(500).json({ error: 'Failed to add workout to library' });
+  }
+});
+
+/**
+ * DELETE /api/workouts/library/:id
+ * Creator or admin can remove a community template.
+ */
+router.delete('/library/:id', authenticate, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid library id' });
+
+    const [rows] = await pool.query('SELECT id, created_by FROM workout_library WHERE id = ?', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Template not found' });
+
+    const isOwner = rows[0].created_by === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'You can only delete workouts you added to the library' });
+    }
+
+    await pool.query('DELETE FROM workout_library WHERE id = ?', [id]);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to delete library workout' });
   }
 });
 
