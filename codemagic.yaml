@@ -38,6 +38,18 @@ workflows:
         script: |
           cd frontend/ios/App
           pod install
+      - name: Verify App Store Connect API credentials
+        script: |
+          set -e
+          missing=""
+          [ -z "$APP_STORE_CONNECT_ISSUER_ID" ] && missing="$missing APP_STORE_CONNECT_ISSUER_ID"
+          [ -z "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && missing="$missing APP_STORE_CONNECT_KEY_IDENTIFIER"
+          [ -z "$APP_STORE_CONNECT_PRIVATE_KEY" ] && missing="$missing APP_STORE_CONNECT_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "Missing Codemagic environment variables:$missing"
+            echo "Applications → FightForge → Environment variables → group app_store_credentials"
+            exit 1
+          fi
       - name: Fetch signing files from Apple
         script: |
           app-store-connect fetch-signing-files "$CM_BUNDLE_ID" \
