@@ -99,6 +99,13 @@ function httpErrorMessage(res, data) {
   return 'Request failed';
 }
 
+function isCapacitorApp() {
+  if (typeof window === 'undefined') return false;
+  const { protocol, hostname } = window.location;
+  if (/^capacitor:/i.test(protocol) || /^ionic:/i.test(protocol)) return true;
+  return import.meta.env.PROD && hostname === 'localhost';
+}
+
 export async function apiFetch(path, { method = 'GET', body, token } = {}) {
   const vercelSameOriginProxy = import.meta.env.VITE_FF_VERCEL_PROXY === '1';
   if (isProdBuild() && path.startsWith('/api') && !API_BASE && !vercelSameOriginProxy) {
@@ -157,7 +164,10 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
         if (url.startsWith('http') && !url.startsWith(window.location.origin)) {
           hint =
             " Often: API is down, wrong API URL, or CORS — add this site's origin to the backend CORS_ORIGIN.";
-          if (onVercel) {
+          if (isCapacitorApp()) {
+            hint +=
+              ' TestFlight/iOS: the API must allow Capacitor origins (capacitor://localhost). Redeploy the latest backend, or run: fly secrets set CORS_ORIGIN="https://your-vercel-app.vercel.app,capacitor://localhost,ionic://localhost" — see docs/APPLE_APP_STORE.md.';
+          } else if (onVercel) {
             hint += ` Vercel: (1) Project → Settings → Environment Variables → add VITE_API_BASE = your API base URL (e.g. https://api.example.com), no trailing slash. (2) Save, then Redeploy (env is applied at build time). (3) On the API server, set CORS_ORIGIN to include https://${window.location.host} (add preview URLs too if you use Preview deployments).`;
           }
         } else if (url.startsWith('/')) {

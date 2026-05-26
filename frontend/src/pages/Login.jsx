@@ -39,10 +39,17 @@ export default function Login() {
       if (
         import.meta.env.PROD &&
         typeof window !== 'undefined' &&
-        (window.location.hostname.endsWith('.vercel.app') || window.location.hostname === 'vercel.app') &&
+        (window.location.hostname.endsWith('.vercel.app') ||
+          window.location.hostname === 'vercel.app' ||
+          /^capacitor:/i.test(window.location.protocol) ||
+          /^ionic:/i.test(window.location.protocol) ||
+          window.location.hostname === 'localhost') &&
         /could not reach|failed to fetch|load failed|network|not configured|html instead of json|cors/i.test(msg)
       ) {
-        msg += ' See docs/VERCEL.md — set VITE_API_BASE and CORS_ORIGIN on your API.';
+        msg +=
+          window.location.hostname.endsWith('.vercel.app') || window.location.hostname === 'vercel.app'
+            ? ' See docs/VERCEL.md — set VITE_API_BASE and CORS_ORIGIN on your API.'
+            : ' See docs/APPLE_APP_STORE.md — redeploy the Fly API with Capacitor CORS, then install a fresh TestFlight build.';
       }
       setError(msg);
     } finally {

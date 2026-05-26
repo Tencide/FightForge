@@ -36,6 +36,15 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
   .map((s) => s.trim())
   .filter(Boolean);
 
+/** Capacitor / Ionic WebView origins (TestFlight, App Store). Browsers cannot forge these. */
+function isCapacitorWebViewOrigin(origin) {
+  if (!origin || typeof origin !== 'string') return false;
+  if (/^capacitor:\/\//i.test(origin)) return true;
+  if (/^ionic:\/\//i.test(origin)) return true;
+  if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
+  return false;
+}
+
 // In development, reflect the request Origin (origin: true). That covers Vite
 // with host: true (localhost, 127.0.0.1, LAN IP, IPv6) without maintaining a
 // list. A strict allowlist alone often breaks login with opaque browser /
@@ -48,6 +57,7 @@ const corsOptions =
         origin(origin, callback) {
           if (!origin) return callback(null, true);
           if (allowedOrigins.includes(origin)) return callback(null, true);
+          if (isCapacitorWebViewOrigin(origin)) return callback(null, true);
           return callback(null, false);
         },
         credentials: true,

@@ -77,13 +77,20 @@ First-time: run on a **physical iPhone** to verify login, library, and reel uplo
 
 ## 4. API: allow Capacitor origin (Fly)
 
-Add Capacitor’s iOS WebView origin to Fly secrets (comma-separated with your Vercel URL):
+The iOS app (TestFlight / App Store) calls **`https://fightforge-api.fly.dev`** directly. Requests come from the WebView origin **`capacitor://localhost`** (not your Vercel URL). If the API rejects that origin, login shows **“Could not reach the server (load failed)”**.
+
+**Recommended:** redeploy the latest **`backend/`** — production CORS now **automatically allows** Capacitor/Ionic WebView origins (`capacitor://…`, `ionic://…`, `http(s)://localhost`).
+
+You can still set an explicit list (comma-separated, no spaces after commas):
 
 ```bash
 fly secrets set CORS_ORIGIN="https://fightforge.vercel.app,capacitor://localhost,ionic://localhost" -a fightforge-api
+fly deploy -a fightforge-api
 ```
 
-If you use a custom URL scheme in `capacitor.config.ts`, include that origin too.
+Verify from a browser: open **`https://fightforge-api.fly.dev/api/health`** — you should see `{"ok":true,"service":"fightforge-api"}`.
+
+If you use a custom URL scheme in `capacitor.config.json`, include that origin too when setting `CORS_ORIGIN`.
 
 ---
 
@@ -225,6 +232,17 @@ The yaml uses `ios_signing` + `distribution_type: app_store` (no `--create` on t
 Then you can use `ios_signing` + `distribution_type: app_store` in yaml instead of the fetch script.
 
 Apple allows at most **3** Distribution certificates — revoke an old one in [developer.apple.com](https://developer.apple.com/account/resources/certificates/list) if generate fails.
+
+---
+
+## TestFlight: “Could not reach the server” / “load failed”
+
+| Check | Action |
+|-------|--------|
+| **API up?** | On your phone or PC, open **`https://fightforge-api.fly.dev/api/health`**. If it fails, finish Fly deploy + billing (see **`docs/FLY.md`**). |
+| **CORS** | Redeploy **`backend/`** (Capacitor origins allowed automatically) **or** set **`CORS_ORIGIN`** with **`capacitor://localhost,ionic://localhost`** (see [§4](#4-api-allow-capacitor-origin-fly)). |
+| **Old build?** | Codemagic runs **`npm run cap:sync`** which bakes **`VITE_API_BASE=https://fightforge-api.fly.dev`**. Push to **`main`** and wait for a new TestFlight build after API fixes. |
+| **Demo login** | Use seeded accounts only if your **production DB** was seeded; otherwise **Sign up** in the app. |
 
 ---
 
