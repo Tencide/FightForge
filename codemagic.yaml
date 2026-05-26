@@ -45,6 +45,12 @@ workflows:
           pod install
       - name: Set up code signing on Xcode project
         script: xcode-project use-profiles
+      - name: Set iOS build number
+        script: |
+          cd frontend/ios/App
+          BUILD_NUM=$CM_BUILD_NUMBER
+          if [ "$BUILD_NUM" -lt 2 ]; then BUILD_NUM=2; fi
+          /usr/bin/sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${BUILD_NUM};/g" App.xcodeproj/project.pbxproj
       - name: Build IPA
         script: |
           cd frontend/ios/App
