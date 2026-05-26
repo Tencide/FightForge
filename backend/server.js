@@ -42,6 +42,8 @@ function isCapacitorWebViewOrigin(origin) {
   if (/^capacitor:\/\//i.test(origin)) return true;
   if (/^ionic:\/\//i.test(origin)) return true;
   if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
+  // Capacitor ios.scheme in capacitor.config.json (e.g. FightForge://localhost)
+  if (/^[a-z][a-z0-9+\-.]*:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
   return false;
 }
 

@@ -119,3 +119,4 @@ Open the Vite URL (usually `http://127.0.0.1:5173`). The dev server proxies `/ap
 - **Frontend (Vercel):** **[`docs/VERCEL.md`](docs/VERCEL.md)** — Root **`frontend`**, **`VITE_API_BASE`** (Production + Preview). **[`frontend/.env.vercel.example`](frontend/.env.vercel.example)**  
 - **API (Fly.io):** **[`docs/FLY.md`](docs/FLY.md)** — Docker app, secrets, **`https://<app>.fly.dev`** → that origin is **`VITE_API_BASE`**.  
 - **Overview (MySQL + CORS):** **[`docs/DEPLOY.md`](docs/DEPLOY.md)**
+- **Apple App Store (iOS):** **[`docs/APPLE_APP_STORE.md`](docs/APPLE_APP_STORE.md)** — Capacitor wrapper, Xcode, App Store Connect (requires a Mac).

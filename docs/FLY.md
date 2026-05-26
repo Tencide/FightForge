@@ -118,6 +118,10 @@ fly secrets set CORS_ORIGIN="https://your-app.vercel.app"
 
 You can list multiple origins separated by commas. After changing secrets, the app restarts.
 
+**iOS app (Capacitor):** add WebView origins, e.g.  
+`CORS_ORIGIN="https://your-app.vercel.app,capacitor://localhost,ionic://localhost"`  
+See **[`APPLE_APP_STORE.md`](APPLE_APP_STORE.md)**.
+
 ---
 
 ## 3. Deploy

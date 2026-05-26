@@ -1,5 +1,10 @@
 const TOKEN_KEY = 'fightforge_token';
 
+import { Capacitor } from '@capacitor/core';
+
+/** Production Fly API — used by TestFlight / App Store builds (see build:mobile). */
+const MOBILE_API_ORIGIN = 'https://fightforge-api.fly.dev';
+
 /**
  * Optional hardcoded production API origin when you do **not** use `VITE_API_BASE`
  * (e.g. no variables in the Vercel dashboard). Must be `https://` if the site is HTTPS.
@@ -9,12 +14,21 @@ const TOKEN_KEY = 'fightforge_token';
  */
 const API_ORIGIN_FALLBACK = '';
 
+function resolveApiBase() {
+  const fromEnv = (import.meta.env.VITE_API_BASE || API_ORIGIN_FALLBACK || '').replace(/\/+$/, '');
+  if (fromEnv) return fromEnv;
+  // Vercel build clears VITE_API_BASE and uses same-origin /api proxy.
+  if (import.meta.env.VITE_FF_VERCEL_PROXY === '1') return '';
+  // Native app (TestFlight): never use relative /api on capacitor:// or FightForge://
+  if (import.meta.env.PROD && Capacitor.isNativePlatform()) return MOBILE_API_ORIGIN;
+  return '';
+}
+
 /**
- * Resolved API base: env wins, then in-file fallback. Trailing slashes stripped.
+ * Resolved API base: env wins, then native/Vercel rules above.
  * - Dev: usually empty → `/api/...` proxied by Vite to the backend.
- * - Prod: set `VITE_API_BASE` in the host **or** set `API_ORIGIN_FALLBACK` above.
  */
-const API_BASE = (import.meta.env.VITE_API_BASE || API_ORIGIN_FALLBACK || '').replace(/\/+$/, '');
+const API_BASE = resolveApiBase();
 
 export function buildUrl(path) {
   if (!API_BASE) return path;
@@ -45,9 +59,8 @@ export function resolveMediaUrl(pathOrUrl) {
  */
 export function getUploadBase() {
   if (API_BASE) return API_BASE;
-  const envBase = (import.meta.env.VITE_API_BASE || '').replace(/\/+$/, '');
-  if (envBase) return envBase;
-  if (import.meta.env.PROD) return 'https://fightforge-api.fly.dev';
+  if (import.meta.env.PROD && Capacitor.isNativePlatform()) return MOBILE_API_ORIGIN;
+  if (import.meta.env.PROD) return MOBILE_API_ORIGIN;
   return 'http://127.0.0.1:5000';
 }
 
@@ -100,9 +113,16 @@ function httpErrorMessage(res, data) {
 }
 
 function isCapacitorApp() {
+  try {
+    if (Capacitor.isNativePlatform()) return true;
+  } catch {
+    /* Capacitor not available */
+  }
   if (typeof window === 'undefined') return false;
   const { protocol, hostname } = window.location;
   if (/^capacitor:/i.test(protocol) || /^ionic:/i.test(protocol)) return true;
+  // ios.scheme in capacitor.config.json → e.g. fightforge://localhost
+  if (/^[a-z][a-z0-9+\-.]*:/i.test(protocol) && hostname === 'localhost') return true;
   return import.meta.env.PROD && hostname === 'localhost';
 }
 
@@ -166,7 +186,7 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
             " Often: API is down, wrong API URL, or CORS — add this site's origin to the backend CORS_ORIGIN.";
           if (isCapacitorApp()) {
             hint +=
-              ' TestFlight/iOS: the API must allow Capacitor origins (capacitor://localhost). Redeploy the latest backend, or run: fly secrets set CORS_ORIGIN="https://your-vercel-app.vercel.app,capacitor://localhost,ionic://localhost" — see docs/APPLE_APP_STORE.md.';
+              ' TestFlight/iOS: redeploy the Fly API (allows FightForge://localhost CORS), then install a fresh TestFlight build from Codemagic — see docs/APPLE_APP_STORE.md.';
           } else if (onVercel) {
             hint += ` Vercel: (1) Project → Settings → Environment Variables → add VITE_API_BASE = your API base URL (e.g. https://api.example.com), no trailing slash. (2) Save, then Redeploy (env is applied at build time). (3) On the API server, set CORS_ORIGIN to include https://${window.location.host} (add preview URLs too if you use Preview deployments).`;
           }

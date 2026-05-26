@@ -77,14 +77,16 @@ First-time: run on a **physical iPhone** to verify login, library, and reel uplo
 
 ## 4. API: allow Capacitor origin (Fly)
 
-The iOS app (TestFlight / App Store) calls **`https://fightforge-api.fly.dev`** directly. Requests come from the WebView origin **`capacitor://localhost`** (not your Vercel URL). If the API rejects that origin, login shows **“Could not reach the server (load failed)”**.
+The iOS app (TestFlight / App Store) calls **`https://fightforge-api.fly.dev`** directly. Requests send origin **`FightForge://localhost`** (from `capacitor.config.json` → `ios.scheme`), not your Vercel URL. If the API rejects that origin, login shows **“Could not reach the server (load failed)”**.
 
-**Recommended:** redeploy the latest **`backend/`** — production CORS now **automatically allows** Capacitor/Ionic WebView origins (`capacitor://…`, `ionic://…`, `http(s)://localhost`).
+**Recommended:** redeploy the latest **`backend/`** — production CORS allows Capacitor/Ionic/custom-scheme WebView origins (`capacitor://…`, `FightForge://localhost`, etc.).
 
-You can still set an explicit list (comma-separated, no spaces after commas):
+Then push to **`main`** so Codemagic ships a **new TestFlight build** (client always uses the Fly API on native).
+
+Optional explicit list:
 
 ```bash
-fly secrets set CORS_ORIGIN="https://fightforge.vercel.app,capacitor://localhost,ionic://localhost" -a fightforge-api
+fly secrets set CORS_ORIGIN="https://fightforge.vercel.app,FightForge://localhost,capacitor://localhost,ionic://localhost" -a fightforge-api
 fly deploy -a fightforge-api
 ```
 
