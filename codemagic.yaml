@@ -43,20 +43,25 @@ workflows:
         script: |
           cd frontend/ios/App
           pod install
-      - name: Set up code signing on Xcode project
-        script: xcode-project use-profiles
       - name: Set iOS build number
         script: |
-          cd frontend/ios/App
-          BUILD_NUM=$CM_BUILD_NUMBER
-          if [ "$BUILD_NUM" -lt 2 ]; then BUILD_NUM=2; fi
+          set -e
+          cd "$CM_BUILD_DIR/frontend/ios/App"
+          # Codemagic exports BUILD_NUMBER (not CM_BUILD_NUMBER). Must exceed TestFlight build 1.
+          BUILD_NUM="${BUILD_NUMBER:-2}"
+          if ! echo "$BUILD_NUM" | grep -Eq '^[0-9]+$' || [ "$BUILD_NUM" -lt 2 ]; then
+            BUILD_NUM=2
+          fi
+          echo "Setting CURRENT_PROJECT_VERSION to ${BUILD_NUM}"
           /usr/bin/sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${BUILD_NUM};/g" App.xcodeproj/project.pbxproj
+          grep CURRENT_PROJECT_VERSION App.xcodeproj/project.pbxproj
+      - name: Set up code signing on Xcode project
+        script: xcode-project use-profiles
       - name: Build IPA
         script: |
-          cd frontend/ios/App
           xcode-project build-ipa \
-            --workspace "$CM_BUILD_DIR/frontend/ios/App/$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+            --workspace "$CM_BUILD_DIR/frontend/ios/App/App.xcworkspace" \
+            --scheme App
     artifacts:
       - frontend/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
