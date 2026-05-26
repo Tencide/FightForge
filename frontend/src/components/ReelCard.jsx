@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Avatar from './Avatar';
 import ReelYouTube from './ReelYouTube';
 import Icon from './Icon';
-import { resolveMediaUrl } from '../api/client';
+import { resolveMediaUrl, apiFetch } from '../api/client';
 import { getYouTubeId } from '../utils/youtube';
 
 const SPORT_LABELS = {
@@ -20,6 +20,7 @@ export default function ReelCard({
   active,
   onLike,
   onDelete,
+  onReelUpdate,
   canDelete,
   liking,
 }) {
@@ -34,6 +35,30 @@ export default function ReelCard({
     reel.videoUrl && reel.videoUrl.startsWith('/api/') ? reel.videoUrl : null;
   const [videoSrc, setVideoSrc] = useState('');
   const isDirect = reel.videoKind === 'direct' && !videoError;
+  const processing = Boolean(reel.videoProcessing);
+
+  useEffect(() => {
+    if (!processing || !onReelUpdate) return undefined;
+    let cancelled = false;
+    let attempts = 0;
+    const tick = async () => {
+      if (cancelled || attempts > 45) return;
+      attempts += 1;
+      try {
+        const data = await apiFetch(`/api/reels/${reel.id}`);
+        if (cancelled) return;
+        if (!data.reel?.videoProcessing) onReelUpdate(data.reel);
+      } catch {
+        /* retry */
+      }
+    };
+    const id = setInterval(tick, 2000);
+    tick();
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [reel.id, processing, onReelUpdate]);
 
   useEffect(() => {
     setVideoError(false);
@@ -146,8 +171,15 @@ export default function ReelCard({
                   }}
                 />
               ) : (
-                <p className="reel-video-loading muted">Loading clip…</p>
+                <p className="reel-video-loading muted">
+                  {processing ? 'Optimizing clip…' : 'Loading clip…'}
+                </p>
               )}
+              {processing ? (
+                <p className="reel-video-processing muted" aria-live="polite">
+                  Finishing upload…
+                </p>
+              ) : null}
               <button
                 type="button"
                 className={`reel-play-btn ${isPlaying ? 'is-hidden' : ''}`}

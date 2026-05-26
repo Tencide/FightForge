@@ -241,8 +241,8 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
   return data;
 }
 
-/** Ping API so Fly machines wake before a large multipart upload. */
-export async function wakeUploadApi() {
+/** Ping API so Fly machines wake before login or large uploads. */
+export async function wakeApi() {
   const base = getUploadBase();
   try {
     await fetch(`${base}/api/health`, { method: 'GET', cache: 'no-store' });
@@ -250,6 +250,9 @@ export async function wakeUploadApi() {
     /* ignore */
   }
 }
+
+/** @deprecated use wakeApi */
+export const wakeUploadApi = wakeApi;
 
 export function apiUpload(path, formData, { token, onProgress } = {}) {
   const base = getUploadBase();

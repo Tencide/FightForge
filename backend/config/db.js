@@ -32,6 +32,8 @@ function createPool() {
     database: DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
+    connectTimeout: 10_000,
+    enableKeepAlive: true,
     namedPlaceholders: true,
     ...(ssl ? { ssl } : {}),
   });

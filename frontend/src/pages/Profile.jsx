@@ -5,6 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import { resizeImageToSquareDataUrl } from '../utils/image';
+import {
+  TRAINING_DAY_OPTIONS,
+  activityMultiplierForTrainingDays,
+  clampTrainingDays,
+  describeTrainingWeek,
+} from '../utils/trainingDays';
 import './pageLayout.css';
 import './Profile.css';
 
@@ -47,12 +53,12 @@ function tdeeEstimate(g) {
   const age = Number(g.ageYears) || 25;
   const heightIn = Number(g.heightIn) || 68;
   const weightLb = Number(g.currentWeightLb) || 170;
-  const days = Math.max(0, Math.min(7, Number(g.daysPerWeek) || 4));
+  const days = clampTrainingDays(g.daysPerWeek);
   const heightCm = heightIn * 2.54;
   const weightKg = weightLb * 0.453592;
   const sexAdj = sex === 'female' ? -161 : sex === 'other' ? -78 : 5;
   const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + sexAdj;
-  const factor = [1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9][days];
+  const factor = activityMultiplierForTrainingDays(days);
   const tdee = bmr * factor;
   let target = tdee;
   if (g.goalType === 'cut') target = tdee - 500;
@@ -146,6 +152,7 @@ export default function Profile() {
   }, [goals]);
 
   const tdee = useMemo(() => tdeeEstimate(goals), [goals]);
+  const trainingWeek = useMemo(() => describeTrainingWeek(goals.daysPerWeek), [goals.daysPerWeek]);
 
   async function saveIdentity(e) {
     e.preventDefault();
@@ -483,16 +490,31 @@ export default function Profile() {
                 <option value="bulk">Bulk (gain mass)</option>
               </select>
             </label>
-            <label className="label" style={{ flex: '1 1 140px' }}>
-              Days/week
-              <input
-                className="input"
-                type="number"
-                min={2}
-                max={7}
-                value={goals.daysPerWeek}
-                onChange={(e) => setGoals((g) => ({ ...g, daysPerWeek: e.target.value }))}
-              />
+            <label className="label" style={{ flex: '1 1 200px' }}>
+              Training days per week
+              <select
+                className="select"
+                value={String(clampTrainingDays(goals.daysPerWeek))}
+                onChange={(e) =>
+                  setGoals((g) => ({ ...g, daysPerWeek: Number(e.target.value) }))
+                }
+              >
+                {TRAINING_DAY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <span className="profile-field-hint">
+                {trainingWeek.trainingDays} training · {trainingWeek.restDays} rest —{' '}
+                <strong>{trainingWeek.training.join(', ')}</strong>
+                {trainingWeek.rest.length ? (
+                  <>
+                    {' '}
+                    (rest: {trainingWeek.rest.join(', ')})
+                  </>
+                ) : null}
+              </span>
             </label>
             <label className="label" style={{ flex: '1 1 160px' }}>
               Experience
@@ -594,7 +616,8 @@ export default function Profile() {
               </div>
               <h3 className="section-title">Workout plan</h3>
               <p className="muted">
-                7-day schedule with sessions tailored to your phase, focus, and experience level.
+                Weekly plan (Mon–Sun): {trainingWeek.trainingDays} sessions with rest days marked.
+                &quot;Generate today&apos;s workout&quot; uses today&apos;s slot only.
               </p>
               <button
                 type="button"

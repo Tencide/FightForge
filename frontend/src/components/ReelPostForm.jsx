@@ -212,11 +212,12 @@ export default function ReelPostForm({ onPosted, onError }) {
     onError('');
 
     try {
-      await wakeUploadApi();
-
-      const blob = await prepareReelVideo(raw, {
-        onStatus: (msg) => setUploadPhase(msg),
-      });
+      const [, blob] = await Promise.all([
+        wakeUploadApi(),
+        prepareReelVideo(raw, {
+          onStatus: (msg) => setUploadPhase(msg),
+        }),
+      ]);
 
       setUploadPhase(`Uploading ${formatBytes(blob.size)}…`);
 

@@ -60,6 +60,19 @@
   margin-left: 4px;
 }
 
+.profile-field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.profile-field-hint strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* Generators */
 .profile-generate {
   display: grid;

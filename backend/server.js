@@ -11,6 +11,8 @@ const progressRoutes = require('./routes/progress');
 const messageRoutes = require('./routes/messages');
 const friendRoutes = require('./routes/friends');
 const reelRoutes = require('./routes/reels');
+const { pool } = require('./config/db');
+const { startWorkoutRetentionJob } = require('./lib/workoutRetention');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -136,4 +138,9 @@ app.listen(PORT, '0.0.0.0', () => {
     `FightForge API listening on port ${PORT}` +
       (IS_PROD ? ' (production)' : ' (dev — http://127.0.0.1:' + PORT + ')')
   );
+  pool
+    .query('SELECT 1 AS ok')
+    .then(() => console.log('MySQL connection pool ready'))
+    .catch((err) => console.error('MySQL warm-up failed:', err.message));
+  startWorkoutRetentionJob();
 });

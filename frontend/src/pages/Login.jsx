@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { wakeApi } from '../api/client';
 import Icon from '../components/Icon';
 import './pageLayout.css';
 import './AuthLayout.css';
@@ -19,6 +20,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    void wakeApi();
+  }, []);
 
   if (isAuthenticated && user) {
     const target = location.state?.from && location.state.from !== '/login' ? location.state.from : null;
@@ -29,8 +35,10 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setStatus('Connecting to server…');
+    const slowTimer = window.setTimeout(() => setStatus('Signing in…'), 2500);
     try {
-      await login(email, password);
+      await Promise.all([wakeApi(), login(email, password)]);
     } catch (err) {
       let msg = err.message || 'Login failed';
       if (import.meta.env.DEV && /could not reach|failed to fetch|load failed|network/i.test(msg)) {
@@ -53,7 +61,9 @@ export default function Login() {
       }
       setError(msg);
     } finally {
+      window.clearTimeout(slowTimer);
       setLoading(false);
+      setStatus('');
     }
   }
 
@@ -97,7 +107,7 @@ export default function Login() {
             </p>
           ) : null}
           <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? status || 'Signing in…' : 'Sign in'}
             {!loading && <Icon name="arrowRight" size={16} />}
           </button>
         </form>

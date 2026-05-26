@@ -20,7 +20,8 @@ app = "fightforge-api"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  # Keep one machine warm — cold starts were ~30–40s and made login feel broken.
+  min_machines_running = 1
   processes = ["app"]
 
 [[http_service.checks]]
@@ -31,6 +32,6 @@ app = "fightforge-api"
   path = "/api/health"
 
 [[vm]]
-  memory = "256mb"
+  memory = "512mb"
   cpu_kind = "shared"
   cpus = 1

@@ -37,12 +37,15 @@ export function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const COMPRESS_ABOVE_BYTES = 6 * 1024 * 1024;
+const COMPRESS_ABOVE_BYTES = 20 * 1024 * 1024;
+const SKIP_MP4_BELOW_BYTES = 28 * 1024 * 1024;
 
-/** Large files only — server transcodes to H.264 MP4 on upload for playback everywhere. */
+/** Large files only — server transcodes non-MP4 in the background. */
 export function needsReelTranscode(blob) {
   if (!blob) return false;
-  return blob.size > COMPRESS_ABOVE_BYTES;
+  if (blob.size <= COMPRESS_ABOVE_BYTES) return false;
+  if (blob.type?.includes('mp4') && blob.size < SKIP_MP4_BELOW_BYTES) return false;
+  return true;
 }
 
 /**

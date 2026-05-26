@@ -3,16 +3,15 @@ const { pool } = require('../config/db');
 const { authenticate } = require('../middleware/auth');
 const { reelVideoUpload } = require('../middleware/reelUpload');
 const { classifyVideoUrl } = require('../lib/youtube');
-const path = require('path');
 const { publicPathForFilename, deleteUploadedFile, mediaPathForFilename } = require('../lib/reelUploads');
-const { ensurePlaybackMp4 } = require('../lib/transcode');
+const { scheduleReelTranscode, isReelProcessing } = require('../lib/reelTranscodeQueue');
 
 const router = express.Router();
 
 const SPORTS = new Set(['mma', 'boxing', 'bjj', 'kickboxing', 'wrestling', 'muay_thai', 'general']);
 
-function mapReel(row) {
-  return {
+function mapReel(row, { videoProcessing } = {}) {
+  const reel = {
     id: row.id,
     authorId: row.author_id,
     videoUrl: row.video_url,
@@ -29,7 +28,17 @@ function mapReel(row) {
     likeCount: Number(row.like_count || 0),
     likedByMe: Boolean(row.liked_by_me),
   };
+  if (videoProcessing) reel.videoProcessing = true;
+  return reel;
 }
+
+const reelSelect = `
+  SELECT r.id, r.author_id, r.video_url, r.video_kind, r.caption, r.sport, r.created_at,
+    u.full_name AS author_name, u.role AS author_role, u.avatar_url AS author_avatar,
+    (SELECT COUNT(*) FROM reel_likes rl WHERE rl.reel_id = r.id) AS like_count,
+    EXISTS(SELECT 1 FROM reel_likes rl WHERE rl.reel_id = r.id AND rl.user_id = ?) AS liked_by_me
+  FROM reels r
+  JOIN users u ON u.id = r.author_id`;
 
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -38,12 +47,7 @@ router.get('/', authenticate, async (req, res) => {
     const sport = req.query.sport ? String(req.query.sport).trim() : '';
 
     let sql = `
-      SELECT r.id, r.author_id, r.video_url, r.video_kind, r.caption, r.sport, r.created_at,
-        u.full_name AS author_name, u.role AS author_role, u.avatar_url AS author_avatar,
-        (SELECT COUNT(*) FROM reel_likes rl WHERE rl.reel_id = r.id) AS like_count,
-        EXISTS(SELECT 1 FROM reel_likes rl WHERE rl.reel_id = r.id AND rl.user_id = ?) AS liked_by_me
-      FROM reels r
-      JOIN users u ON u.id = r.author_id
+      ${reelSelect}
     `;
     const params = [req.user.id];
 
@@ -56,7 +60,13 @@ router.get('/', authenticate, async (req, res) => {
     params.push(limit, offset);
 
     const [rows] = await pool.query(sql, params);
-    res.json({ reels: rows.map(mapReel), limit, offset });
+    res.json({
+      reels: rows.map((row) =>
+        mapReel(row, { videoProcessing: isReelProcessing(row.id) })
+      ),
+      limit,
+      offset,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to load reels' });
@@ -103,6 +113,23 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const reelId = Number(req.params.id);
+    if (!reelId) return res.status(400).json({ error: 'Invalid reel id' });
+
+    const [rows] = await pool.query(`${reelSelect} WHERE r.id = ?`, [req.user.id, reelId]);
+    if (!rows.length) return res.status(404).json({ error: 'Reel not found' });
+
+    res.json({
+      reel: mapReel(rows[0], { videoProcessing: isReelProcessing(reelId) }),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load reel' });
+  }
+});
+
 router.post('/upload', authenticate, reelVideoUpload, async (req, res) => {
   try {
     if (!req.file) {
@@ -116,10 +143,8 @@ router.post('/upload', authenticate, reelVideoUpload, async (req, res) => {
         ? null
         : String(caption).trim().slice(0, 500);
 
-    let storedName = req.file.filename;
+    const storedName = req.file.filename;
     const diskPath = mediaPathForFilename(storedName);
-    const finalPath = await ensurePlaybackMp4(diskPath);
-    storedName = path.basename(finalPath);
     const videoUrl = publicPathForFilename(storedName);
 
     const [result] = await pool.query(
@@ -128,17 +153,17 @@ router.post('/upload', authenticate, reelVideoUpload, async (req, res) => {
       [req.user.id, videoUrl, cap, sportVal]
     );
 
+    const reelId = result.insertId;
+    const videoProcessing = scheduleReelTranscode(reelId, diskPath);
+
     const [rows] = await pool.query(
-      `SELECT r.id, r.author_id, r.video_url, r.video_kind, r.caption, r.sport, r.created_at,
-        u.full_name AS author_name, u.role AS author_role, u.avatar_url AS author_avatar,
-        0 AS like_count, 0 AS liked_by_me
-       FROM reels r
-       JOIN users u ON u.id = r.author_id
-       WHERE r.id = ?`,
-      [result.insertId]
+      `${reelSelect} WHERE r.id = ?`,
+      [req.user.id, reelId]
     );
 
-    res.status(201).json({ reel: mapReel({ ...rows[0], liked_by_me: 0, like_count: 0 }) });
+    res.status(201).json({
+      reel: mapReel({ ...rows[0], liked_by_me: 0, like_count: 0 }, { videoProcessing }),
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to upload reel' });

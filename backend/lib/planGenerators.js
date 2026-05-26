@@ -3,6 +3,14 @@
  * preferences) into a workout or meal plan. Pure functions — no DB access.
  */
 
+const {
+  clampTrainingDays,
+  pickTrainingDayIndexes,
+  activityMultiplierForTrainingDays,
+  describeTrainingWeek,
+  DAY_LABELS,
+} = require('./trainingDays');
+
 const FOCUS_DAYS = {
   striking: ['Striking', 'Strength (Lower)', 'Striking & Conditioning', 'Active recovery', 'Sparring & footwork', 'Strength (Upper)', 'Cardio + mobility'],
   grappling: ['Grappling drills', 'Strength (Pull)', 'Live rolling', 'Active recovery', 'Grappling & conditioning', 'Strength (Push)', 'Cardio + mobility'],
@@ -111,17 +119,18 @@ function generateWorkoutPlan(profile = {}) {
   const goal = ['cut', 'maintain', 'bulk'].includes(profile.goalType)
     ? profile.goalType
     : 'maintain';
-  const days = Math.max(3, Math.min(6, Number(profile.daysPerWeek) || 4));
+  const days = clampTrainingDays(profile.daysPerWeek);
   const focus = FOCUS_DAYS[profile.trainingFocus] ? profile.trainingFocus : 'all-around';
   const exp = ['beginner', 'intermediate', 'advanced'].includes(profile.experienceLevel)
     ? profile.experienceLevel
     : 'intermediate';
 
-  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayNames = DAY_LABELS;
   const template = FOCUS_DAYS[focus];
+  const week = describeTrainingWeek(days);
 
   // Pick training days evenly spread across the week
-  const trainSlots = pickTrainingDays(days);
+  const trainSlots = pickTrainingDayIndexes(days);
   const restNote = exp === 'beginner'
     ? 'Beginner — keep RPE around 6-7. Add weight only when last set looks clean.'
     : exp === 'advanced'
@@ -140,7 +149,9 @@ function generateWorkoutPlan(profile = {}) {
     intensityNote,
     restNote,
     '',
-    '── Weekly schedule ──',
+    `── Mon–Sun calendar · ${week.trainingDays} training · ${week.restDays} rest ──`,
+    `Training: ${week.training.join(', ')}`,
+    week.rest.length ? `Rest: ${week.rest.join(', ')}` : '',
     '',
   ];
 
@@ -166,13 +177,10 @@ function generateWorkoutPlan(profile = {}) {
 }
 
 function pickTrainingDays(count) {
-  if (count >= 6) return new Set([0, 1, 2, 4, 5, 6]);
-  if (count === 5) return new Set([0, 1, 3, 4, 5]);
-  if (count === 4) return new Set([0, 1, 3, 5]);
-  return new Set([0, 2, 4]);
+  return pickTrainingDayIndexes(count);
 }
 
-const DAY_NAMES_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_NAMES_SHORT = DAY_LABELS;
 
 /**
  * Map FOCUS_DAYS block names to a preferred workout_library title (or fall
@@ -248,7 +256,7 @@ function generateDailyWorkout(profile = {}, library = [], dateOverride) {
   const goal = ['cut', 'maintain', 'bulk'].includes(profile.goalType)
     ? profile.goalType
     : 'maintain';
-  const days = Math.max(3, Math.min(6, Number(profile.daysPerWeek) || 4));
+  const days = clampTrainingDays(profile.daysPerWeek);
   const focus = FOCUS_DAYS[profile.trainingFocus] ? profile.trainingFocus : 'all-around';
   const exp = ['beginner', 'intermediate', 'advanced'].includes(profile.experienceLevel)
     ? profile.experienceLevel
@@ -337,7 +345,7 @@ function generateMealPlan(profile = {}) {
   const age = clampNum(profile.ageYears, 14, 90, 25);
   const heightIn = clampNum(profile.heightIn, 48, 84, 68);
   const weightLb = clampNum(profile.currentWeightLb, 80, 400, 170);
-  const days = clampNum(profile.daysPerWeek, 0, 7, 4);
+  const days = clampTrainingDays(profile.daysPerWeek);
   const goal = ['cut', 'maintain', 'bulk'].includes(profile.goalType)
     ? profile.goalType
     : 'maintain';
@@ -349,8 +357,7 @@ function generateMealPlan(profile = {}) {
   const sexAdj = sex === 'female' ? -161 : sex === 'other' ? -78 : 5;
   const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + sexAdj;
 
-  const activityMap = [1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9];
-  const tdee = bmr * activityMap[days];
+  const tdee = bmr * activityMultiplierForTrainingDays(days);
 
   let calories;
   if (goal === 'cut') calories = Math.round(tdee - 500);
@@ -433,15 +440,14 @@ function computeTargets(profile = {}) {
   const heightIn = clampNum(profile.heightIn, 48, 84, 68);
   const weightLb = clampNum(profile.currentWeightLb, 80, 400, 170);
   const goalWeightLb = clampNum(profile.goalWeightLb, 80, 400, weightLb);
-  const days = clampNum(profile.daysPerWeek, 0, 7, 4);
+  const days = clampTrainingDays(profile.daysPerWeek);
 
   const heightCm = heightIn * 2.54;
   const weightKg = weightLb * 0.453592;
   const sexAdj = sex === 'female' ? -161 : sex === 'other' ? -78 : 5;
   const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + sexAdj;
 
-  const activityMap = [1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9];
-  const tdee = bmr * activityMap[days];
+  const tdee = bmr * activityMultiplierForTrainingDays(days);
 
   const weightDelta = goalWeightLb - weightLb;
   let goalDirection;

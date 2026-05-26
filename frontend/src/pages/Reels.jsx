@@ -218,6 +218,9 @@ export default function Reels() {
               active={index === activeIndex}
               onLike={handleLike}
               onDelete={handleDelete}
+              onReelUpdate={(updated) =>
+                setReels((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+              }
               canDelete={reel.authorId === user?.id || user?.role === 'admin'}
               liking={likingId === reel.id}
             />
