@@ -1,76 +1,97 @@
-# FightForge — iOS build on Codemagic (no Mac required).
-#
-# A) App Store Connect API (publishing + profile fetch in UI):
-#    Settings → Team integrations → Developer Portal → key name: Codemagic
-#
-# B) Code signing (required once — fixes "certificate private key" error):
-#    Settings → codemagic.yaml settings → Code signing identities
-#    1. iOS certificates → Generate certificate → Apple Distribution → API key Codemagic
-#       Reference name: fightforge_dist
-#    2. iOS provisioning profiles → Fetch profiles → App Store → com.fightforge.app
-#       Reference name: fightforge_appstore
-#    (Profile row should show a green check on Certificate when cert exists.)
-
-workflows:
-  fightforge-ios:
-    name: FightForge iOS (App Store)
-    max_build_duration: 90
-    instance_type: mac_mini_m2
-    integrations:
-      app_store_connect: Codemagic
-    environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.fightforge.app
-      vars:
-        XCODE_WORKSPACE: App.xcworkspace
-        XCODE_SCHEME: App
-        CM_BUNDLE_ID: com.fightforge.app
-        CAPACITOR_LIVE_URL: https://fightforge.vercel.app
-      node: v20
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-    scripts:
-      - name: Install dependencies and sync Capacitor
-        script: |
-          cd frontend
-          npm ci
-          export CAPACITOR_LIVE_URL="${CAPACITOR_LIVE_URL:-https://fightforge.vercel.app}"
-          npm run cap:sync
-      - name: CocoaPods
-        script: |
-          cd frontend/ios/App
-          pod install
-      - name: Set iOS build number
-        script: |
-          set -e
-          cd "$CM_BUILD_DIR/frontend/ios/App"
-          # Codemagic exports BUILD_NUMBER (not CM_BUILD_NUMBER). Must exceed TestFlight build 1.
-          BUILD_NUM="${BUILD_NUMBER:-2}"
-          if ! echo "$BUILD_NUM" | grep -Eq '^[0-9]+$' || [ "$BUILD_NUM" -lt 2 ]; then
-            BUILD_NUM=2
-          fi
-          echo "Setting CURRENT_PROJECT_VERSION to ${BUILD_NUM}"
-          /usr/bin/sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${BUILD_NUM};/g" App.xcodeproj/project.pbxproj
-          grep CURRENT_PROJECT_VERSION App.xcodeproj/project.pbxproj
-      - name: Set up code signing on Xcode project
-        script: xcode-project use-profiles
-      - name: Build IPA
-        script: |
-          xcode-project build-ipa \
-            --workspace "$CM_BUILD_DIR/frontend/ios/App/App.xcworkspace" \
-            --scheme App
-    artifacts:
-      - frontend/ios/App/build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        beta_groups:
-          - Internal Testers
-        submit_to_app_store: false
+# FightForge — iOS build on Codemagic (no Mac required).
+#
+# A) App Store Connect API (publishing + profile fetch in UI):
+#    Settings → Team integrations → Developer Portal → key name must match
+#    `integrations.app_store_connect` below (e.g. FightForge or Codemagic).
+#
+# B) Code signing (required once):
+#    Settings → codemagic.yaml settings → Code signing identities
+#    1. iOS certificates → Apple Distribution → API key (reference: fightforge_dist)
+#    2. iOS provisioning profiles → App Store → com.fightforge.app (fightforge_appstore)
+#
+# C) Optional env var in Codemagic UI (Application → Environment variables):
+#    APP_STORE_APPLE_ID = numeric App ID from App Store Connect → App → General
+
+workflows:
+  fightforge-ios:
+    name: FightForge iOS (App Store)
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.fightforge.app
+      vars:
+        XCODE_WORKSPACE: App.xcworkspace
+        XCODE_SCHEME: App
+        CM_BUNDLE_ID: com.fightforge.app
+        CAPACITOR_LIVE_URL: https://fightforge.vercel.app
+      node: v20
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Install dependencies and sync Capacitor
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/frontend"
+          npm ci
+          export CAPACITOR_LIVE_URL="${CAPACITOR_LIVE_URL:-https://fightforge.vercel.app}"
+          npm run cap:sync
+      - name: CocoaPods
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/frontend/ios/App"
+          pod install
+      - name: Set up code signing on Xcode project
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/frontend/ios/App"
+          xcode-project use-profiles
+      - name: Set iOS build number
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/frontend/ios/App"
+          if [ -n "${APP_STORE_APPLE_ID:-}" ]; then
+            LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 1)
+            BUILD_NUM=$((LATEST + 1))
+          else
+            BUILD_NUM="${BUILD_NUMBER:-2}"
+            if [ "$BUILD_NUM" -lt 2 ]; then BUILD_NUM=2; fi
+          fi
+          echo "Using CFBundleVersion (build number): ${BUILD_NUM}"
+          agvtool new-version -all "$BUILD_NUM"
+          agvtool what-version
+      - name: Build IPA
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/frontend/ios/App"
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+          echo "IPA output:"
+          ls -la build/ios/ipa/
+      - name: Verify IPA before publish
+        script: |
+          set -e
+          IPA_DIR="$CM_BUILD_DIR/frontend/ios/App/build/ios/ipa"
+          if ! ls "$IPA_DIR"/*.ipa 1>/dev/null 2>&1; then
+            echo "ERROR: No .ipa in $IPA_DIR"
+            find "$CM_BUILD_DIR" -name "*.ipa" -ls || true
+            exit 1
+          fi
+          ls -la "$IPA_DIR"/*.ipa
+    artifacts:
+      - frontend/ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
+

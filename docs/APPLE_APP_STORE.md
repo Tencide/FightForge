@@ -196,7 +196,14 @@ One afternoon on a friend’s MacBook: `npm run cap:sync`, Archive, upload. You 
 
 ---
 
-### Codemagic: `integration "Codemagic" does not exist`
+### Codemagic: build succeeds but App Store Connect still shows only 1.0 (1)
+
+Usually the **IPA path was wrong** — `xcode-project build-ipa` must run from `frontend/ios/App` so the file lands in `frontend/ios/App/build/ios/ipa/`. If Publishing finishes in ~1s and no new build appears in App Store Connect, open the **Verify IPA before publish** step in the failed/successful log.
+
+Also check `integrations.app_store_connect` in `codemagic.yaml` matches **Settings → Team integrations** (e.g. `Codemagic` vs `FightForge`).
+
+Optional: set **`APP_STORE_APPLE_ID`** in Codemagic env (numeric ID from App Store Connect → your app → General) so build numbers auto-increment from TestFlight.
+
 
 The name in `integrations.app_store_connect` must **exactly** match **Settings → Integrations** (e.g. you may have named it `FightForge` not `Codemagic`).
 
