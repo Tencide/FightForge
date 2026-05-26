@@ -1,22 +1,20 @@
 # FightForge — iOS build on Codemagic (no Mac required).
 #
-# REQUIRED in Codemagic → FightForge app → Environment variables
-# Create a group named "appstore_credentials" (mark secrets) with:
-#   APP_STORE_CONNECT_PRIVATE_KEY  = full contents of your .p8 file
-#   APP_STORE_CONNECT_KEY_IDENTIFIER = Key ID (10 chars from App Store Connect)
-#   APP_STORE_CONNECT_ISSUER_ID    = Issuer ID (UUID from App Store Connect)
-#
-# Alternative: use integrations.app_store_connect: YOUR_KEY_NAME
-# where YOUR_KEY_NAME matches Settings → Integrations exactly.
+# ONE-TIME SETUP (no environment variable groups needed):
+# 1. Codemagic → Settings (Personal Account) → Team integrations
+# 2. Under "Developer Portal" (or App Store Connect) → Manage keys → Add key
+# 3. Name the key exactly: FightForge  (must match integrations.app_store_connect below)
+# 4. Paste Issuer ID, Key ID, and upload your .p8 file → Save
+# 5. Start build on main
 
 workflows:
   fightforge-ios:
     name: FightForge iOS (App Store)
     max_build_duration: 90
     instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: FightForge
     environment:
-      groups:
-        - appstore_credentials
       vars:
         XCODE_WORKSPACE: App.xcworkspace
         XCODE_SCHEME: App
@@ -38,18 +36,6 @@ workflows:
         script: |
           cd frontend/ios/App
           pod install
-      - name: Verify App Store Connect API credentials
-        script: |
-          set -e
-          missing=""
-          [ -z "$APP_STORE_CONNECT_ISSUER_ID" ] && missing="$missing APP_STORE_CONNECT_ISSUER_ID"
-          [ -z "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && missing="$missing APP_STORE_CONNECT_KEY_IDENTIFIER"
-          [ -z "$APP_STORE_CONNECT_PRIVATE_KEY" ] && missing="$missing APP_STORE_CONNECT_PRIVATE_KEY"
-          if [ -n "$missing" ]; then
-            echo "Missing Codemagic environment variables:$missing"
-            echo "Applications → FightForge → Environment variables → group appstore_credentials"
-            exit 1
-          fi
       - name: Fetch signing files from Apple
         script: |
           app-store-connect fetch-signing-files "$CM_BUNDLE_ID" \
@@ -70,9 +56,7 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        auth: integration
         submit_to_testflight: true
         beta_groups:
           - Internal Testers

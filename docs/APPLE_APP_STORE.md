@@ -191,19 +191,14 @@ One afternoon on a friend’s MacBook: `npm run cap:sync`, Archive, upload. You 
 
 The name in `integrations.app_store_connect` must **exactly** match **Settings → Integrations** (e.g. you may have named it `FightForge` not `Codemagic`).
 
-**Easier fix (current repo):** use environment variables instead of `auth: integration`:
+**Current repo fix:** use **Team integrations** (no env group):
 
-1. **Applications → FightForge → Environment variables**
-2. **Add group:** `appstore_credentials` (must match yaml exactly — no extra underscores)
-3. Add three **secret** variables:
+1. Codemagic → **Settings** (personal) → **Team integrations** → **Developer Portal** → **Manage keys** → **Add key**
+2. **API key name:** `FightForge` (must match `integrations.app_store_connect` in `codemagic.yaml`)
+3. Issuer ID, Key ID, `.p8` from App Store Connect → **Save**
+4. Rebuild on `main`
 
-| Variable | Value |
-|----------|--------|
-| `APP_STORE_CONNECT_PRIVATE_KEY` | Entire `.p8` file (including BEGIN/END lines) |
-| `APP_STORE_CONNECT_KEY_IDENTIFIER` | Key ID from App Store Connect → Integrations → Keys |
-| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID at top of Keys page |
-
-4. Rebuild on latest `main`.
+**“Unknown variable group appstore_credentials”** — create that group in **Applications → FightForge → Environment variables**, or use the integrations method above (recommended; no group needed).
 
 ---
 
