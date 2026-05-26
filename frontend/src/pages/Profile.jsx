@@ -401,7 +401,7 @@ export default function Profile() {
             )}
           </div>
 
-          <div className="row">
+          <div className="row profile-goals-row">
             <label className="label" style={{ flex: '1 1 140px' }}>
               Sex
               <select
@@ -443,7 +443,7 @@ export default function Profile() {
             </label>
           </div>
 
-          <div className="row">
+          <div className="row profile-goals-row">
             <label className="label" style={{ flex: '1 1 140px' }}>
               Current weight (lb)
               <input
@@ -477,7 +477,7 @@ export default function Profile() {
             </label>
           </div>
 
-          <div className="row">
+          <div className="row profile-goals-row">
             <label className="label" style={{ flex: '1 1 160px' }}>
               Phase
               <select
@@ -530,7 +530,7 @@ export default function Profile() {
             </label>
           </div>
 
-          <div className="row">
+          <div className="row profile-goals-row">
             <label className="label" style={{ flex: '1 1 200px' }}>
               Training focus
               <select

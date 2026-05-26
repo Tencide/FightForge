@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "node scripts/apply-vercel-api-rewrite.mjs && vite build",
     "build:mobile": "cross-env CAPACITOR=1 VITE_API_BASE=https://fightforge-api.fly.dev vite build",
-    "cap:sync": "npm run build:mobile && npx cap sync",
+    "cap:sync": "npm run build:mobile && node scripts/apply-capacitor-live-url.mjs && npx cap sync",
     "cap:ios": "npx cap open ios",
     "lint": "eslint .",
     "preview": "vite preview"

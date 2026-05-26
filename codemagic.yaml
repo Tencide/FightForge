@@ -26,6 +26,7 @@ workflows:
         XCODE_WORKSPACE: App.xcworkspace
         XCODE_SCHEME: App
         CM_BUNDLE_ID: com.fightforge.app
+        CAPACITOR_LIVE_URL: https://fightforge.vercel.app
       node: v20
     triggering:
       events:
@@ -38,6 +39,7 @@ workflows:
         script: |
           cd frontend
           npm ci
+          export CAPACITOR_LIVE_URL="${CAPACITOR_LIVE_URL:-https://fightforge.vercel.app}"
           npm run cap:sync
       - name: CocoaPods
         script: |
