@@ -3,7 +3,7 @@
 # ONE-TIME SETUP (no environment variable groups needed):
 # 1. Codemagic → Settings (Personal Account) → Team integrations
 # 2. Under "Developer Portal" (or App Store Connect) → Manage keys → Add key
-# 3. Name the key exactly: FightForge  (must match integrations.app_store_connect below)
+# 3. Name must match integrations.app_store_connect below (yours: Codemagic)
 # 4. Paste Issuer ID, Key ID, and upload your .p8 file → Save
 # 5. Start build on main
 
@@ -13,7 +13,7 @@ workflows:
     max_build_duration: 90
     instance_type: mac_mini_m2
     integrations:
-      app_store_connect: FightForge
+      app_store_connect: Codemagic
     environment:
       vars:
         XCODE_WORKSPACE: App.xcworkspace
