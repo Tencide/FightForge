@@ -1,11 +1,15 @@
 # FightForge — iOS build on Codemagic (no Mac required).
 #
-# ONE-TIME SETUP (no environment variable groups needed):
-# 1. Codemagic → Settings (Personal Account) → Team integrations
-# 2. Under "Developer Portal" (or App Store Connect) → Manage keys → Add key
-# 3. Name must match integrations.app_store_connect below (yours: Codemagic)
-# 4. Paste Issuer ID, Key ID, and upload your .p8 file → Save
-# 5. Start build on main
+# A) App Store Connect API (publishing + profile fetch in UI):
+#    Settings → Team integrations → Developer Portal → key name: Codemagic
+#
+# B) Code signing (required once — fixes "certificate private key" error):
+#    Settings → codemagic.yaml settings → Code signing identities
+#    1. iOS certificates → Generate certificate → Apple Distribution → API key Codemagic
+#       Reference name: fightforge_dist
+#    2. iOS provisioning profiles → Fetch profiles → App Store → com.fightforge.app
+#       Reference name: fightforge_appstore
+#    (Profile row should show a green check on Certificate when cert exists.)
 
 workflows:
   fightforge-ios:
@@ -15,6 +19,9 @@ workflows:
     integrations:
       app_store_connect: Codemagic
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.fightforge.app
       vars:
         XCODE_WORKSPACE: App.xcworkspace
         XCODE_SCHEME: App
@@ -36,14 +43,7 @@ workflows:
         script: |
           cd frontend/ios/App
           pod install
-      - name: Fetch signing files from Apple
-        script: |
-          app-store-connect fetch-signing-files "$CM_BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-      - name: Add certificates to keychain
-        script: keychain add-certificates
-      - name: Apply code signing profiles
+      - name: Set up code signing on Xcode project
         script: xcode-project use-profiles
       - name: Build IPA
         script: |

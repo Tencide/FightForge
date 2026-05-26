@@ -206,9 +206,18 @@ The name in `integrations.app_store_connect` must **exactly** match **Settings �
 
 That error means Codemagic had **no App Store certificate/profile** for `com.fightforge.app`.
 
-**Fix A (recommended):** Use the repo `codemagic.yaml` — it runs `app-store-connect fetch-signing-files … --create` so Apple files are created during the build. Ensure **Settings → Integrations → Developer Portal** (or App Store Connect) has your `.p8` API key (same as publishing).
+**Fix (recommended):** **Settings → codemagic.yaml settings → Code signing identities** (do this before rebuilding):
 
-**Fix B (manual upload):** **Team settings → codemagic.yaml settings → Code signing identities**
+1. **iOS certificates** → **Generate certificate** → **Apple Distribution** → API key **Codemagic** → reference name `fightforge_dist`
+2. **iOS provisioning profiles** → **Fetch profiles** → **App Store** → `com.fightforge.app` → reference `fightforge_appstore`
+
+The yaml uses `ios_signing` + `distribution_type: app_store` (no `--create` on the build machine).
+
+**“Cannot save Signing Certificates without certificate private key”** — you skipped step 1; generate the Distribution cert in Codemagic UI (do not rely on `--create` during the build).
+
+**Fix B (advanced):** add `CERTIFICATE_PRIVATE_KEY` env var if you use automatic `fetch-signing-files --create` (not used in current yaml).
+
+**Legacy manual upload:** **Team settings → codemagic.yaml settings → Code signing identities**
 
 1. **iOS certificates** → **Generate certificate** → type **Apple Distribution** → API key `Codemagic`
 2. **iOS provisioning profiles** → **Fetch profiles** → App Store → `com.fightforge.app` → download with a reference name
