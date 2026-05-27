@@ -1,5 +1,7 @@
 **/node_modules
 dist
+actions-runner/
+**/fightforge-actions-runner/
 .env
 .env.fly
 backend/.env.fly

@@ -1,6 +1,17 @@
 # CI/CD (GitHub Actions)
 
-GitHub Actions runs **CI** on every push/PR to `main` and `integration`, and **CD** when changes land on `main` (or when triggered manually).
+## Quick setup (checklist)
+
+| Step | Where | What |
+| --- | --- | --- |
+| 1 | GitHub → **Actions** → enable workflows | Workflows live on **`main`** (merge `ci/github-actions-pipeline` if needed) |
+| 2 | **Variables** | `USE_SELF_HOSTED` = `true` (your Windows runner with label `fightforge`) |
+| 3 | Runner PC | Node 20+, Docker Desktop running; runner service or `.\run.cmd` **Idle** |
+| 4 | **Actions → CI → Run workflow** | Confirm all jobs green; optional required check: **CI passed** |
+| 5 | **Secrets** (optional deploy) | `FLY_API_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` |
+| 6 | **Variables** (optional deploy) | `ENABLE_CD` = `true` after secrets are set |
+
+GitHub Actions runs **CI** on every push/PR to `main` and `integration`, and **CD** when changes land on `main` with `ENABLE_CD=true` (or when triggered manually).
 
 | Workflow | File | When it runs |
 | --- | --- | --- |
@@ -46,7 +57,7 @@ CD assumes:
 - Fly app name **`fightforge-api`** in [`backend/fly.toml`](../backend/fly.toml).
 - Vercel project **Root Directory** = **`frontend`**.
 
-If secrets are missing, the CD workflow will fail at deploy time — CI still runs without them.
+CD deploy jobs are **skipped** unless `ENABLE_CD` = `true` and the secrets below are set. CI always runs without deploy secrets.
 
 ---
 

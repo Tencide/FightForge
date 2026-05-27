@@ -103,3 +103,18 @@ jobs:
         env:
           API_BASE: https://fightforge-api.fly.dev
         run: npm run test:api
+
+  ci-ok:
+    name: CI passed
+    runs-on: ubuntu-latest
+    needs: [frontend, backend-image, smoke-unit, smoke-api]
+    if: always()
+    steps:
+      - name: All required jobs succeeded
+        run: |
+          check() { test "$1" = "success" || { echo "Job failed: $2 ($1)"; exit 1; }; }
+          check "${{ needs.frontend.result }}" "frontend"
+          check "${{ needs.backend-image.result }}" "backend-image"
+          check "${{ needs.smoke-unit.result }}" "smoke-unit"
+          check "${{ needs.smoke-api.result }}" "smoke-api"
+          echo "CI pipeline passed."
