@@ -5,8 +5,8 @@
 | Step | Where | What |
 | --- | --- | --- |
 | 1 | GitHub → **Actions** → enable workflows | Workflows live on **`main`** (merge `ci/github-actions-pipeline` if needed) |
-| 2 | **Variables** | `USE_SELF_HOSTED` = `true` (your Windows runner with label `fightforge`) |
-| 3 | Runner PC | Node 20+, Docker Desktop running; runner service or `.\run.cmd` **Idle** |
+| 2 | **Variables** | (optional) `USE_SELF_HOSTED` = `false` only if you want GitHub-hosted runners again |
+| 3 | Runner PC | Node 20+, Docker Desktop running; runner `.\run.cmd` shows **Listening for Jobs**; labels include `self-hosted`, `Windows`, `X64` |
 | 4 | **Actions → CI → Run workflow** | Confirm all jobs green; optional required check: **CI passed** |
 | 5 | **Secrets** (optional deploy) | `FLY_API_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` |
 | 6 | **Variables** (optional deploy) | `ENABLE_CD` = `true` after secrets are set |
@@ -110,17 +110,18 @@ In GitHub: **Settings → Secrets and variables → Actions → Variables**
 | --- | --- |
 | `USE_SELF_HOSTED` | `true` |
 
-Push or re-run **CI**. Jobs use `runs-on: [self-hosted, Windows, fightforge]` instead of `ubuntu-latest`.
+Push or re-run **CI**. Jobs use `runs-on: [self-hosted, Windows, X64]` instead of `ubuntu-latest` (default runner labels; the setup script also adds `fightforge` if you use `setup-github-runner.ps1`).
 
 To test once without the variable: **Actions → CI → Run workflow** → check **use_self_hosted**.
 
-Set `USE_SELF_HOSTED` to `false` or remove it to go back to GitHub-hosted runners.
+Set `USE_SELF_HOSTED` = `false` in repo variables to use GitHub-hosted runners (requires billing in good standing).
 
 ### Troubleshooting
 
 | Issue | Fix |
 | --- | --- |
-| Job queued forever | Runner offline — run `.\run.cmd` or start the Windows service |
+| Job queued forever | Runner offline, or label mismatch — runner must have `self-hosted`, `Windows`, and `X64` (re-register with `.\scripts\setup-github-runner.ps1` or add labels at registration) |
+| CI fails instantly on GitHub-hosted | Account billing lock — set `USE_SELF_HOSTED=true` and keep your runner online |
 | Docker build fails | Start Docker Desktop; ensure Linux containers mode works |
 | Token expired / 404 on register | Generate a **new** registration token; use `-CleanInstall`; do not use a PAT |
 | `Unrecognized ... 'windows'` | Update script (removed invalid `--windows` flag) and re-run with `-CleanInstall` |

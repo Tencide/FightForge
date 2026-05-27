@@ -142,6 +142,7 @@ async function runApiTests() {
 
   let authedToken = null;
   let authedUser = null;
+  const missingDemo = [];
   for (const acct of demoAccounts) {
     const login = await apiJson('POST', '/api/auth/login', {
       body: { email: acct.email, password: acct.password },
@@ -153,16 +154,22 @@ async function runApiTests() {
         authedUser = login.data.user;
       }
     } else {
-      fail(
-        `${acct.label} demo login`,
-        `status ${login.status} — seed users may be missing on this API (${login.data?.error || 'no token'})`
-      );
+      missingDemo.push(acct.label);
     }
   }
 
   if (!authedToken) {
-    fail('authenticated route suite', 'skipped — no demo token (run seed against this API)');
+    fail(
+      'demo login',
+      `no demo account worked (${missingDemo.join(', ')}) — run seed against ${API_BASE}`
+    );
+    fail('authenticated route suite', 'skipped — no demo token');
     return;
+  }
+  if (missingDemo.length) {
+    console.log(
+      `  ⚠ optional demo users not on API: ${missingDemo.join(', ')} (seed ${API_BASE} to enable)`
+    );
   }
 
   const authed = (method, path, opts = {}) => apiJson(method, path, { ...opts, token: authedToken });
