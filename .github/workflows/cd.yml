@@ -17,7 +17,7 @@ jobs:
   deploy-api:
     name: Deploy API (Fly.io)
     if: vars.ENABLE_CD == 'true'
-    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED != 'false' && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
     environment: production
     defaults:
       run:
@@ -35,7 +35,7 @@ jobs:
   deploy-frontend:
     name: Deploy frontend (Vercel)
     if: vars.ENABLE_CD == 'true'
-    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED != 'false' && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
     needs: [deploy-api]
     environment: production
     steps:

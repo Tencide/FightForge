@@ -27,7 +27,8 @@ concurrency:
 jobs:
   frontend:
     name: Frontend (lint + build)
-    runs-on: ${{ (vars.USE_SELF_HOSTED == 'true' || inputs.use_self_hosted) && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
+    # Default self-hosted (GitHub-hosted fails when account billing is locked). Set USE_SELF_HOSTED=false to use ubuntu-latest.
+    runs-on: ${{ (inputs.use_self_hosted || vars.USE_SELF_HOSTED != 'false') && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
     defaults:
       run:
         working-directory: frontend
@@ -54,7 +55,8 @@ jobs:
 
   backend-image:
     name: Backend (Docker build)
-    runs-on: ${{ (vars.USE_SELF_HOSTED == 'true' || inputs.use_self_hosted) && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
+    # Default self-hosted (GitHub-hosted fails when account billing is locked). Set USE_SELF_HOSTED=false to use ubuntu-latest.
+    runs-on: ${{ (inputs.use_self_hosted || vars.USE_SELF_HOSTED != 'false') && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -88,7 +90,8 @@ jobs:
 
   smoke-unit:
     name: Smoke tests (unit)
-    runs-on: ${{ (vars.USE_SELF_HOSTED == 'true' || inputs.use_self_hosted) && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
+    # Default self-hosted (GitHub-hosted fails when account billing is locked). Set USE_SELF_HOSTED=false to use ubuntu-latest.
+    runs-on: ${{ (inputs.use_self_hosted || vars.USE_SELF_HOSTED != 'false') && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
     needs: [frontend]
     defaults:
       run:
@@ -105,7 +108,8 @@ jobs:
 
   smoke-api:
     name: Smoke tests (live API)
-    runs-on: ${{ (vars.USE_SELF_HOSTED == 'true' || inputs.use_self_hosted) && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
+    # Default self-hosted (GitHub-hosted fails when account billing is locked). Set USE_SELF_HOSTED=false to use ubuntu-latest.
+    runs-on: ${{ (inputs.use_self_hosted || vars.USE_SELF_HOSTED != 'false') && fromJson('["self-hosted","Windows","X64"]') || 'ubuntu-latest' }}
     needs: [frontend]
     defaults:
       run:

@@ -5,7 +5,7 @@
 | Step | Where | What |
 | --- | --- | --- |
 | 1 | GitHub → **Actions** → enable workflows | Workflows live on **`main`** (merge `ci/github-actions-pipeline` if needed) |
-| 2 | **Variables** | `USE_SELF_HOSTED` = `true` (required if GitHub-hosted minutes are blocked) |
+| 2 | **Variables** | (optional) `USE_SELF_HOSTED` = `false` only if you want GitHub-hosted runners again |
 | 3 | Runner PC | Node 20+, Docker Desktop running; runner `.\run.cmd` shows **Listening for Jobs**; labels include `self-hosted`, `Windows`, `X64` |
 | 4 | **Actions → CI → Run workflow** | Confirm all jobs green; optional required check: **CI passed** |
 | 5 | **Secrets** (optional deploy) | `FLY_API_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` |
@@ -114,7 +114,7 @@ Push or re-run **CI**. Jobs use `runs-on: [self-hosted, Windows, X64]` instead o
 
 To test once without the variable: **Actions → CI → Run workflow** → check **use_self_hosted**.
 
-Set `USE_SELF_HOSTED` to `false` or remove it to go back to GitHub-hosted runners.
+Set `USE_SELF_HOSTED` = `false` in repo variables to use GitHub-hosted runners (requires billing in good standing).
 
 ### Troubleshooting
 
