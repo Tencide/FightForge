@@ -10,7 +10,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "seed": "node scripts/seed.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node scripts/run-smoke-tests.js --unit-only",
+    "test:api": "node scripts/run-smoke-tests.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
