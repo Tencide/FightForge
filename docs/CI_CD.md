@@ -50,6 +50,63 @@ If secrets are missing, the CD workflow will fail at deploy time — CI still ru
 
 ---
 
+## Self-hosted runner (Windows)
+
+Use your own PC as a GitHub Actions runner (label **`fightforge`**) when GitHub-hosted minutes are unavailable or you want local Docker/Node.
+
+### 1. Install prerequisites on the runner machine
+
+- [Node.js 20+](https://nodejs.org/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for the backend Docker CI job)
+- Git
+
+### 2. Register the runner
+
+From the repo root in PowerShell:
+
+```powershell
+.\scripts\setup-github-runner.ps1
+```
+
+The script prints a link to create a **registration token** (Settings → Actions → Runners → New self-hosted runner → Windows). Then run:
+
+```powershell
+.\scripts\setup-github-runner.ps1 -RegistrationToken "YOUR_TOKEN" -InstallService
+```
+
+Runner files install to `%LOCALAPPDATA%\fightforge-actions-runner` (not in the git repo).
+
+Start manually without a service:
+
+```powershell
+cd $env:LOCALAPPDATA\fightforge-actions-runner
+.\run.cmd
+```
+
+### 3. Point workflows at the runner
+
+In GitHub: **Settings → Secrets and variables → Actions → Variables**
+
+| Variable | Value |
+| --- | --- |
+| `USE_SELF_HOSTED` | `true` |
+
+Push or re-run **CI**. Jobs use `runs-on: [self-hosted, Windows, fightforge]` instead of `ubuntu-latest`.
+
+To test once without the variable: **Actions → CI → Run workflow** → check **use_self_hosted**.
+
+Set `USE_SELF_HOSTED` to `false` or remove it to go back to GitHub-hosted runners.
+
+### Troubleshooting
+
+| Issue | Fix |
+| --- | --- |
+| Job queued forever | Runner offline — run `.\run.cmd` or start the Windows service |
+| Docker build fails | Start Docker Desktop; ensure Linux containers mode works |
+| Token expired | Generate a new token and re-run `setup-github-runner.ps1` with `-RegistrationToken` |
+
+---
+
 ## Branch workflow
 
 1. Open a PR from `ci/github-actions-pipeline` (or your feature branch) into `main`.

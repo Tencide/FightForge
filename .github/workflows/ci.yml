@@ -13,6 +13,12 @@ on:
     branches:
       - main
       - integration
+  workflow_dispatch:
+    inputs:
+      use_self_hosted:
+        description: Run on self-hosted fightforge runner (must be online)
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -21,7 +27,7 @@ concurrency:
 jobs:
   frontend:
     name: Frontend (lint + build)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (vars.USE_SELF_HOSTED == 'true' || inputs.use_self_hosted) && fromJson('["self-hosted","Windows","fightforge"]') || 'ubuntu-latest' }}
     defaults:
       run:
         working-directory: frontend
@@ -48,7 +54,7 @@ jobs:
 
   backend-image:
     name: Backend (Docker build)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (vars.USE_SELF_HOSTED == 'true' || inputs.use_self_hosted) && fromJson('["self-hosted","Windows","fightforge"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,7 +70,7 @@ jobs:
 
   smoke-unit:
     name: Smoke tests (unit)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (vars.USE_SELF_HOSTED == 'true' || inputs.use_self_hosted) && fromJson('["self-hosted","Windows","fightforge"]') || 'ubuntu-latest' }}
     needs: [frontend]
     defaults:
       run:
@@ -81,7 +87,7 @@ jobs:
 
   smoke-api:
     name: Smoke tests (live API)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (vars.USE_SELF_HOSTED == 'true' || inputs.use_self_hosted) && fromJson('["self-hosted","Windows","fightforge"]') || 'ubuntu-latest' }}
     needs: [frontend]
     defaults:
       run:
