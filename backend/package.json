@@ -10,7 +10,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "seed": "node scripts/seed.js",
-    "test": "node scripts/run-smoke-tests.js --unit-only",
+    "test": "npm run test:unit && node scripts/run-smoke-tests.js --unit-only",
+    "test:unit": "node --test test/*.test.js",
     "test:api": "node scripts/run-smoke-tests.js"
   },
   "dependencies": {

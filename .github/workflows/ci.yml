@@ -47,6 +47,9 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: Unit tests (Vitest)
+        run: npm run test
+
       - name: Production build (Vercel-style)
         env:
           FIGHTFORGE_VERCEL_BUILD: "1"
@@ -103,7 +106,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Unit smoke (planGenerators, youtube, etc.)
+      - name: Unit tests (node:test + smoke)
         run: npm test
 
   smoke-api:

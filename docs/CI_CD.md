@@ -24,16 +24,16 @@ iOS builds stay on **Codemagic** ([`codemagic.yaml`](../codemagic.yaml)); this p
 
 ## CI jobs
 
-1. **Frontend** — `npm ci`, `npm run lint`, Vercel-style `npm run build` (`FIGHTFORGE_VERCEL_BUILD=1`).
+1. **Frontend** — `npm ci`, `npm run lint`, `npm run test` (Vitest), Vercel-style `npm run build` (`FIGHTFORGE_VERCEL_BUILD=1`).
 2. **Backend** — validates the Fly **`backend/Dockerfile`** image builds (no push).
-3. **Smoke (unit)** — `cd backend && npm test` (plan generators, YouTube helpers; no network).
+3. **Smoke (unit)** — `cd backend && npm test` (`node --test` unit suite + legacy smoke; no network).
 4. **Smoke (API)** — hits `https://fightforge-api.fly.dev` (health, auth, seeded demo users).
 
 Local equivalents:
 
 ```bash
-cd frontend && npm ci && npm run lint && FIGHTFORGE_VERCEL_BUILD=1 VITE_API_BASE=https://fightforge-api.fly.dev npm run build
-cd backend && npm test
+cd frontend && npm ci && npm run lint && npm run test && FIGHTFORGE_VERCEL_BUILD=1 VITE_API_BASE=https://fightforge-api.fly.dev npm run build
+cd backend && npm run test:unit && npm test
 cd backend && npm run test:api
 ```
 
