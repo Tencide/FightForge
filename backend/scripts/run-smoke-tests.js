@@ -13,10 +13,9 @@ const {
 } = require('../lib/planGenerators');
 const { getYouTubeId, classifyVideoUrl } = require('../lib/youtube');
 
-const API_BASE = (process.argv[2] || process.env.API_BASE || 'https://fightforge-api.fly.dev').replace(
-  /\/$/,
-  ''
-);
+const args = process.argv.slice(2).filter((a) => a !== '--unit-only');
+const unitOnly = process.argv.includes('--unit-only');
+const API_BASE = (args[0] || process.env.API_BASE || 'https://fightforge-api.fly.dev').replace(/\/$/, '');
 
 let passed = 0;
 let failed = 0;
