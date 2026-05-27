@@ -133,10 +133,16 @@ jobs:
     if: always()
     steps:
       - name: All required jobs succeeded
+        shell: powershell
         run: |
-          check() { test "$1" = "success" || { echo "Job failed: $2 ($1)"; exit 1; }; }
-          check "${{ needs.frontend.result }}" "frontend"
-          check "${{ needs.backend-image.result }}" "backend-image"
-          check "${{ needs.smoke-unit.result }}" "smoke-unit"
-          check "${{ needs.smoke-api.result }}" "smoke-api"
-          echo "CI pipeline passed."
+          function Assert-JobSuccess([string]$Result, [string]$Name) {
+            if ($Result -ne 'success') {
+              Write-Error "Job failed: $Name ($Result)"
+              exit 1
+            }
+          }
+          Assert-JobSuccess '${{ needs.frontend.result }}' 'frontend'
+          Assert-JobSuccess '${{ needs.backend-image.result }}' 'backend-image'
+          Assert-JobSuccess '${{ needs.smoke-unit.result }}' 'smoke-unit'
+          Assert-JobSuccess '${{ needs.smoke-api.result }}' 'smoke-api'
+          Write-Host 'CI pipeline passed.'
