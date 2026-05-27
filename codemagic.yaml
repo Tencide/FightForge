@@ -144,10 +144,14 @@ workflows:
 
           cd "$CM_BUILD_DIR/frontend/ios/App"
 
+          pwd
+          ls -la
+          ls -la "App.xcworkspace" || true
+
           echo "XCODE_WORKSPACE=${XCODE_WORKSPACE:-}"
           echo "XCODE_SCHEME=${XCODE_SCHEME:-}"
           # Avoid env var / line-continuation edge cases: pass explicit values.
-          xcode-project build-ipa --workspace "App.xcworkspace" --scheme "App"
+          xcode-project build-ipa --workspace=App.xcworkspace --scheme=App
 
           echo "IPA output:"
 
