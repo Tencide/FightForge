@@ -8,8 +8,9 @@
 #   .\scripts\setup-github-runner.ps1
 #   .\scripts\setup-github-runner.ps1 -RegistrationToken "AAAA..." -Repo "Tencide/FightForge"
 #
-# Get a registration token (expires in ~1 hour):
-#   GitHub → Repo → Settings → Actions → Runners → New self-hosted runner → Windows
+# Registration token (expires ~1 hour, single use per attempt):
+#   https://github.com/<owner>/<repo>/settings/actions/runners/new
+#   Copy ONLY the token from the page — not a Personal Access Token (PAT).
 
 [CmdletBinding()]
 param(
@@ -18,7 +19,7 @@ param(
     [string]$InstallRoot = "$env:LOCALAPPDATA\fightforge-actions-runner",
     [string]$RegistrationToken,
     [switch]$InstallService,
-    [switch]$SkipConfigure
+    [switch]$CleanInstall
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,7 +28,8 @@ function Write-Step($msg) {
     Write-Host "`n==> $msg" -ForegroundColor Cyan
 }
 
-$RunnerLabels = "self-hosted,Windows,X64,fightforge"
+# Default runner labels include self-hosted, Windows, X64 — add fightforge for workflows.
+$ExtraLabels = "fightforge"
 
 Write-Step "Resolving latest actions-runner release"
 $release = Invoke-RestMethod -Uri "https://api.github.com/repos/actions/runner/releases/latest" -Headers @{ "User-Agent" = "fightforge-setup" }
@@ -44,22 +46,44 @@ $DownloadUrl = $asset.browser_download_url
 Write-Host "Using runner $RunnerVersion ($ZipName)"
 
 Write-Step "FightForge GitHub Actions runner setup"
+$RepoUrl = "https://github.com/$Repo"
 Write-Host "Repo: $Repo"
+Write-Host "URL:  $RepoUrl"
 Write-Host "Install: $InstallRoot"
-Write-Host "Labels: $RunnerLabels"
+Write-Host "Extra labels: $ExtraLabels (+ defaults self-hosted, Windows, X64)"
+
+try {
+    $null = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo" -Headers @{ "User-Agent" = "fightforge-setup" }
+    Write-Host "Repository OK (public or visible to this network)."
+} catch {
+    Write-Warning "Could not verify repo $Repo via GitHub API. Check owner/name and network."
+}
 
 if (-not $RegistrationToken) {
     Write-Host @"
 
 Registration token required.
 
-1. Open: https://github.com/$Repo/settings/actions/runners/new
-2. Choose Windows x64 and copy the token from the configure command
-3. Re-run:
+1. Open: $RepoUrl/settings/actions/runners/new
+2. Choose Windows x64
+3. Copy the token from the configure command (starts shortly, NOT a PAT)
+4. Re-run immediately (tokens expire in ~1 hour):
+
    .\scripts\setup-github-runner.ps1 -RegistrationToken "YOUR_TOKEN"
+
+If configure failed once, generate a NEW token on that page before retrying.
 
 "@ -ForegroundColor Yellow
     exit 1
+}
+
+if ($RegistrationToken.Length -lt 20) {
+    Write-Warning "Token looks too short — use the registration token from the runners page, not a PAT."
+}
+
+if ($CleanInstall -and (Test-Path $InstallRoot)) {
+    Write-Step "Removing existing install ($InstallRoot)"
+    Remove-Item -Recurse -Force $InstallRoot
 }
 
 Write-Step "Creating install directory"
@@ -76,32 +100,47 @@ if (-not (Test-Path ".\config.cmd")) {
 }
 
 Write-Step "Configuring runner (unattended)"
-& .\config.cmd --unattended `
-    --url "https://github.com/$Repo" `
-    --token $RegistrationToken `
-    --name $RunnerName `
-    --labels $RunnerLabels `
-    --windows `
-    --replace
+$configArgs = @(
+    "--unattended",
+    "--url", $RepoUrl,
+    "--token", $RegistrationToken,
+    "--name", $RunnerName,
+    "--labels", $ExtraLabels,
+    "--replace"
+)
+if ($InstallService) {
+    $configArgs += "--runasservice"
+}
+
+& .\config.cmd @configArgs
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "config.cmd failed with exit code $LASTEXITCODE"
+    Write-Host @"
+
+config.cmd failed (exit $LASTEXITCODE).
+
+Common fixes:
+  - Generate a NEW registration token (old ones are invalidated after a failed register).
+  - Confirm URL matches where you created the token: $RepoUrl
+  - Repo → Settings → Actions → General → Allow all actions (if disabled).
+  - Retry with a clean install:
+      .\scripts\setup-github-runner.ps1 -RegistrationToken "NEW_TOKEN" -CleanInstall
+
+"@ -ForegroundColor Red
+    exit $LASTEXITCODE
 }
 
 if ($InstallService) {
-    Write-Step "Installing and starting Windows service"
-    & .\svc.cmd install
-    & .\svc.cmd start
-    Write-Host "Runner service installed. Check status in GitHub → Settings → Actions → Runners."
+    Write-Host "Runner registered and installed as a Windows service (--runasservice)."
 } else {
     Write-Host @"
 
-Runner configured. Start it in this folder:
+Runner registered. Start it:
 
   cd `"$InstallRoot`"
   .\run.cmd
 
-Or install as a service (runs at boot):
+Or install as a service:
 
   cd `"$InstallRoot`"
   .\svc.cmd install
@@ -113,10 +152,8 @@ Or install as a service (runs at boot):
 Write-Host @"
 
 Next steps on GitHub:
-  1. Repo → Settings → Secrets and variables → Actions → Variables
-  2. Add variable USE_SELF_HOSTED = true
-  3. Re-run CI workflow (push or Actions tab)
-
-To use GitHub-hosted runners again, delete the variable or set it to false.
+  1. Settings → Actions → Runners — confirm runner is Idle
+  2. Settings → Secrets and variables → Actions → Variables → USE_SELF_HOSTED = true
+  3. Re-run CI workflow
 
 "@ -ForegroundColor Green

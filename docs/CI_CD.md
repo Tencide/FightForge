@@ -74,6 +74,14 @@ The script prints a link to create a **registration token** (Settings → Action
 .\scripts\setup-github-runner.ps1 -RegistrationToken "YOUR_TOKEN" -InstallService
 ```
 
+If configure failed once, generate a **new** token on the runners page (tokens are short-lived and invalidated after a failed attempt). Retry with `-CleanInstall`:
+
+```powershell
+.\scripts\setup-github-runner.ps1 -RegistrationToken "NEW_TOKEN" -CleanInstall -InstallService
+```
+
+Use the **registration token** from the runners setup page — not a Personal Access Token (PAT). A `404` on registration almost always means wrong or expired token.
+
 Runner files install to `%LOCALAPPDATA%\fightforge-actions-runner` (not in the git repo).
 
 Start manually without a service:
@@ -103,7 +111,8 @@ Set `USE_SELF_HOSTED` to `false` or remove it to go back to GitHub-hosted runner
 | --- | --- |
 | Job queued forever | Runner offline — run `.\run.cmd` or start the Windows service |
 | Docker build fails | Start Docker Desktop; ensure Linux containers mode works |
-| Token expired | Generate a new token and re-run `setup-github-runner.ps1` with `-RegistrationToken` |
+| Token expired / 404 on register | Generate a **new** registration token; use `-CleanInstall`; do not use a PAT |
+| `Unrecognized ... 'windows'` | Update script (removed invalid `--windows` flag) and re-run with `-CleanInstall` |
 
 ---
 
