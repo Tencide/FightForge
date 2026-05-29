@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'ios/**']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -24,6 +24,14 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // v7 flags common data-fetch / reset-on-prop patterns; too noisy for this codebase.
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
+  {
+    files: ['vite.config.js', 'scripts/**/*.mjs', 'scripts/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ])

@@ -10,7 +10,10 @@
     "start": "node server.js",
     "dev": "node server.js",
     "seed": "node scripts/seed.js",
-    "test": "node scripts/run-smoke-tests.js --unit-only",
+    "jwt:secret": "node scripts/generate-jwt.js secret",
+    "jwt:token": "node scripts/generate-jwt.js token",
+    "test": "npm run test:unit && node scripts/run-smoke-tests.js --unit-only",
+    "test:unit": "node scripts/run-unit-tests.js",
     "test:api": "node scripts/run-smoke-tests.js"
   },
   "dependencies": {
