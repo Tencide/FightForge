@@ -29,8 +29,8 @@ const mockMealLibrary = ['breakfast', 'lunch', 'dinner', 'snack'].flatMap((meal_
     title: `${meal_type} option ${n}`,
     goal_alignment: 'cut,any',
     dietary_tag: 'none',
-    calories: 400,
-    protein_g: 30,
+    calories: 300,
+    protein_g: 20,
     carbs_g: 40,
     fat_g: 12,
     prep_minutes: 15,
@@ -40,7 +40,7 @@ const mockMealLibrary = ['breakfast', 'lunch', 'dinner', 'snack'].flatMap((meal_
 
 const mockWorkoutLibrary = [
   {
-    id: 1,
+    id: 0,
     title: 'Striking — Bag work fundamentals',
     category: 'striking',
     experience_level: 'intermediate',
