@@ -16,6 +16,8 @@ import AdminHome from './pages/AdminHome';
 import Profile from './pages/Profile';
 import Friends from './pages/Friends';
 import Reels from './pages/Reels';
+import Privacy from './pages/Privacy';
+import Support from './pages/Support';
 import NotFound from './pages/NotFound';
 
 function AthleteDashboardGate() {
@@ -45,6 +47,8 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/support" element={<Support />} />
 
           <Route
             element={
