@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
 import Avatar from '../components/Avatar';
 import { resizeImageToSquareDataUrl } from '../utils/image';
+import { isWebPlatform } from '../utils/platform';
 import {
   TRAINING_DAY_OPTIONS,
   activityMultiplierForTrainingDays,
@@ -664,6 +665,14 @@ export default function Profile() {
           </div>
         ) : null}
       </section>
+
+      {isWebPlatform() ? (
+        <p className="muted" style={{ marginTop: 4, fontSize: '0.8rem' }}>
+          <Link to="/privacy" className="dim">Privacy Policy</Link>
+          {' · '}
+          <Link to="/support" className="dim">Support</Link>
+        </p>
+      ) : null}
     </div>
   );
 }
