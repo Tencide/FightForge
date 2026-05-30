@@ -53,5 +53,10 @@
 	<string>FightForge needs access to your photo library to upload reel videos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>FightForge can save media to your photo library when you choose to export.</string>
+	<!-- FightForge only uses standard, exempt encryption (HTTPS/TLS provided by iOS).
+	     No proprietary or non-standard cryptography is used, so the app qualifies for
+	     the export-compliance exemption and requires no annual documentation upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
