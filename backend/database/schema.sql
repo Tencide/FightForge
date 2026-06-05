@@ -173,3 +173,18 @@ CREATE TABLE IF NOT EXISTS reel_likes (
 
 CREATE INDEX idx_reels_created ON reels(created_at DESC);
 CREATE INDEX idx_reels_sport ON reels(sport);
+
+-- Password reset tokens. We store only the SHA-256 hash of the token (never the
+-- raw token), so a database leak can't be used to take over accounts. Tokens are
+-- single-use (used_at) and short-lived (expires_at, typically 30 minutes).
+CREATE TABLE IF NOT EXISTS password_resets (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_password_reset_token (token_hash),
+  KEY idx_password_resets_user (user_id),
+  CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

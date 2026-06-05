@@ -13,6 +13,7 @@ const friendRoutes = require('./routes/friends');
 const reelRoutes = require('./routes/reels');
 const { pool } = require('./config/db');
 const { startWorkoutRetentionJob } = require('./lib/workoutRetention');
+const { ensurePasswordResetTable } = require('./lib/passwordReset');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -141,6 +142,8 @@ app.listen(PORT, '0.0.0.0', () => {
   pool
     .query('SELECT 1 AS ok')
     .then(() => console.log('MySQL connection pool ready'))
+    .then(() => ensurePasswordResetTable(pool))
+    .then(() => console.log('password_resets table ready'))
     .catch((err) => console.error('MySQL warm-up failed:', err.message));
   startWorkoutRetentionJob();
 });

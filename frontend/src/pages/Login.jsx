@@ -101,6 +101,9 @@ export default function Login() {
               required
             />
           </label>
+          <p className="muted" style={{ margin: '0', textAlign: 'right', fontSize: '0.85rem' }}>
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
           {error ? (
             <p className="error" role="alert">
               {error}
