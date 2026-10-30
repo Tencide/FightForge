@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Automatic CodeRabbit reviews for public repositories.
+inheritance: true
+
+reviews:
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+    drafts: true
+    base_branches:
+      - ".*"
+    ignore_title_keywords: []
+    labels: []
+    ignore_usernames: []
